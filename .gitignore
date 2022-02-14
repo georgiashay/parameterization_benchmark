@@ -1,2 +1,4 @@
 PyMesh
 *.csv
+*.ipynb
+.ipynb_checkpoints
