@@ -8,8 +8,6 @@ import pymesh
 import scipy
 import igl
 
-dataset_folder = "/Users/georgiashay/Documents/0Classes/0Undergraduate-MIT/0Senior/UROP/Mesh_Dataset/Obj_Files"
-
 def tri_area(co1, co2, co3):
     return np.linalg.norm(np.cross((co2 - co1),( co3 - co1 )))/ 2.0
 
@@ -51,6 +49,7 @@ def get_dataset_characteristics():
                                "Total Boundary Length", "Boundary Faces", "Interior Faces", \
                                "Edge Manifold", "Vertex Manifold", "Closed", "Connectivity Valid"])
     dataset_files = os.listdir(dataset_folder)
+
     for i, f in enumerate(dataset_files):
         print(i+1, "/", len(dataset_files), f, end="\r\n")
         fpath = os.path.join(dataset_folder, f)
@@ -81,14 +80,13 @@ def get_dataset_characteristics():
         
     df.to_csv("mesh_characteristics.csv")
     
-    df = pd.DataFrame(columns=["Filename", "Min Area Ratio", "Max Area Ratio", "Max Area Distortion", \
-                               "Std Dev Area Distortion", "Min Edge Length Ratio", "Max Edge Length Ratio", \
-                               "Max Edge Length Distortion", "Std Dev Edge Length Distortion", \
+    df = pd.DataFrame(columns=["Filename", "Max Area Distortion", "Total Area Distortion", \
                                "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles",
-                               "Max Angle Distortion"])
+                               "Max Angle Distortion", "Total Angle Distortion"])
     
     tri_df = pd.DataFrame(columns=["Filename", "Triangle Number", "Singular Value 1", "Singular Value 2"])
     
+
     for i, fname in enumerate(dataset_files):
         print(i+1, "/", len(dataset_files), fname)
         fpath = os.path.join(dataset_folder, fname)
@@ -114,20 +112,14 @@ def get_dataset_characteristics():
             total_mesh_area = np.sum(mesh_areas)
             total_uv_area = np.sum(uv_areas)
             
-            area_scale_factor = total_mesh_area/total_uv_area
-            edge_scale_factor = np.sqrt(area_scale_factor)
-                
-            area_ratios = uv_areas/mesh_areas
-            scaled_area_ratios = area_ratios * area_scale_factor
-            scaled_area_distortions = scaled_area_ratios + 1/scaled_area_ratios
+            v *= np.sqrt(1.0/total_mesh_area)
+            uv *= np.sqrt(1.0/total_uv_area)
+            mesh_areas *= 1.0/total_mesh_area
+            uv_areas *= 1.0/total_uv_area
             
-            smallest_area_ratio = np.min(scaled_area_ratios)
-            largest_area_ratio = np.max(scaled_area_ratios)
-            largest_area_distortion = np.max(scaled_area_distortions)
-            std_dev_area_distortion = np.std(scaled_area_distortions)
-            
-            mesh_edge_co = v[igl.edges(f)]
-            mesh_edge_lengths = np.linalg.norm(mesh_edge_co[:, 0] - mesh_edge_co[:, 1], axis=1)
+            area_distortions = np.abs(uv_areas - mesh_areas)
+            max_area_distortion = np.max(area_distortions)
+            total_area_distortion = np.sum(area_distortions)
             
             uv_to_v = {}
             for i, face in enumerate(f):
@@ -136,18 +128,6 @@ def get_dataset_characteristics():
                     uv_to_v[uv_idx] = v_idx
                     
             uv_c = np.array([co for i, co in sorted(enumerate(uv), key=lambda i_co: uv_to_v[i_co[0]])])
-        
-            uv_edge_co = uv_c[igl.edges(f)]
-            uv_edge_lengths = np.linalg.norm(uv_edge_co[:, 0] - uv_edge_co[:, 1], axis=1)
-            scaled_uv_edge_lengths = uv_edge_lengths * edge_scale_factor
-            
-            edge_length_ratios = scaled_uv_edge_lengths/mesh_edge_lengths
-            edge_length_distortion = edge_length_ratios + 1/edge_length_ratios
-            
-            min_edge_length_ratio = np.min(edge_length_ratios)
-            max_edge_length_ratio = np.max(edge_length_ratios)
-            max_edge_length_distortion = np.max(edge_length_distortion)
-            std_dev_edge_length_distortion = np.std(edge_length_distortion)
             
             G = igl.grad(v, f)
             f1, f2, f3 = igl.local_basis(v, f)
@@ -158,15 +138,13 @@ def get_dataset_characteristics():
             
             dx = face_proj(f1) @ G
             dy = face_proj(f2) @ G
-            
-            scaled_per_vertex_uv = uv_c * edge_scale_factor
-            
+                        
             J = np.zeros((f.shape[0], 2, 2))
             
-            J[:,0,0] = dx @ scaled_per_vertex_uv[:,0]
-            J[:,0,1] = dy @ scaled_per_vertex_uv[:,0]
-            J[:,1,0] = dx @ scaled_per_vertex_uv[:,1]
-            J[:,1,1] = dy @ scaled_per_vertex_uv[:,1]
+            J[:,0,0] = dx @ uv_c[:,0]
+            J[:,0,1] = dy @ uv_c[:,0]
+            J[:,1,0] = dx @ uv_c[:,1]
+            J[:,1,1] = dy @ uv_c[:,1]
             
             singular_values = np.linalg.svd(J)[1]
             min_singular_value = np.min(singular_values)
@@ -176,13 +154,16 @@ def get_dataset_characteristics():
             flipped = dets < 0
             percent_flipped = np.sum(flipped)/flipped.shape[0]
             
-            angle_distortion = singular_values[:, 0]/singular_values[:, 1] + singular_values[:, 1]/singular_values[:, 0]
-            max_angle_distortion = np.max(angle_distortion)
+            angle_distortions = singular_values[:, 0]/singular_values[:, 1] + singular_values[:, 1]/singular_values[:, 0]
+            max_angle_distortion = np.max(angle_distortions)
             
-            row = [fname, smallest_area_ratio, largest_area_ratio, largest_area_distortion, \
-                  std_dev_area_distortion, min_edge_length_ratio, max_edge_length_ratio, \
-                  max_edge_length_distortion, std_dev_edge_length_distortion, min_singular_value, \
-                  max_singular_value, percent_flipped, max_angle_distortion]
+            finite_distortions = angle_distortions.copy()
+            finite_distortions[np.where(finite_distortions > 1e32)] = 1e32
+            total_angle_distortion = np.sum(mesh_areas * (finite_distortions - 2))
+            
+            row = [fname, max_area_distortion, total_area_distortion, \
+                  min_singular_value, max_singular_value, percent_flipped, \
+                  max_angle_distortion, total_angle_distortion]
             
             row_series = pd.Series(row, index=df.columns)
             
@@ -192,10 +173,6 @@ def get_dataset_characteristics():
             
             tri_df = tri_df.append(new_tri_df, ignore_index=True)
             
-#             for i, singular_val_pair in enumerate(singular_values):
-#                 row = [fname, i, singular_val_pair[0], singular_val_pair[1]]
-#                 row_series = pd.Series(row, index=tri_df.columns)
-#                 tri_df = tri_df.append(row_series, ignore_index=True)
             
     df.to_csv("distortion_characteristics.csv")
     tri_df.to_csv("triangle_singular_values.csv")
@@ -204,7 +181,7 @@ def get_dataset_characteristics():
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run parameterization benchmark")
-    parser.add_argument("--dataset", type=str, required=False, dest="dataset")
+    parser.add_argument("--dataset", type=str, required=True, dest="dataset")
 
     args = parser.parse_args()
     dataset_folder = os.path.abspath(args.dataset)
