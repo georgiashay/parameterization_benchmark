@@ -8,42 +8,16 @@ import pymesh
 import scipy
 import igl
 
-def tri_area(co1, co2, co3):
-    return np.linalg.norm(np.cross((co2 - co1),( co3 - co1 )))/ 2.0
+from utilities.area_distortion import get_area_distortion
+from utilities.preprocess import preprocess
+from utilities.jacobian import get_jacobian
+from utilities.uv_coordinates import get_uv_coordinates
+from utilities.singular_values import get_singular_values
+from utilities.flipped import get_flipped
+from utilities.angle_distortion import get_angle_distortion
 
-def normalize(v):
-    norm = np.linalg.norm(v)
-    if norm == 0: 
-        return v
-    return v/norm
 
-def local_basis(vertices, faces):
-    B1 = np.zeros((faces.shape[0], 3))
-    B2 = np.zeros((faces.shape[0], 3))
-    B3 = np.zeros((faces.shape[0], 3))
-    
-    for i in range(faces.shape[0]):
-        v1 = normalize(vertices[faces[i][1]] - vertices[faces[i][0]])
-        t = vertices[faces[i][2]] - vertices[faces[i][0]]
-        v3 = normalize(np.cross(v1, t))
-        v2 = normalize(np.cross(v1, v3))
-    
-        B1[i] = v1
-        B2[i] = -v2
-        B3[i] = v3
-        
-    return B1, B2, B3
-
-def face_proj(f):
-    num_faces = f.shape[0]
-    data = f.reshape((-1,))
-    rows = np.arange(0, num_faces).repeat(3)
-    cols = np.arange(0, num_faces).repeat(3)
-    cols[1::3] += num_faces
-    cols[2::3] += 2*num_faces
-    return scipy.sparse.csr_matrix((data, (rows, cols)))
-
-def get_dataset_characteristics():
+def get_dataset_characteristics(dataset_folder):
     df = pd.DataFrame(columns=["Filename", "Object Number", "Mesh Name", "Chart Number", \
                                "Vertices", "Faces", "Euler Characteristic", "Genus", \
                                "Total Boundary Length", "Boundary Faces", "Interior Faces", \
@@ -80,6 +54,10 @@ def get_dataset_characteristics():
         
     df.to_csv("mesh_characteristics.csv")
     
+def get_uv_characteristics(dataset_folder):
+    dataset_files = os.listdir(dataset_folder)
+    
+        
     df = pd.DataFrame(columns=["Filename", "Max Area Distortion", "Total Area Distortion", \
                                "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles",
                                "Max Angle Distortion", "Total Angle Distortion"])
@@ -99,67 +77,22 @@ def get_dataset_characteristics():
             connectivity_valid = np.all(cut_mesh.faces == mesh.faces)
             
             if not is_manifold or not connectivity_valid:
+                # TODO: remove these from dataset
                 continue
              
-            v, uv, n, f, ftc, fn = igl.read_obj(fpath)
+            v, uv, f, ftc, mesh_areas, uv_areas = preprocess(fpath)
             
-            f = f.reshape((-1, 3))
-            ftc = ftc.reshape((-1, 3))
+            area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
             
-            mesh_areas = np.abs(igl.doublearea(v, f)/2.0).reshape((1, -1))
-            uv_areas = np.abs(igl.doublearea(uv, ftc)/2.0).reshape((1, -1))
+            uv_c = get_uv_coordinates(f, ftc, uv)
             
-            total_mesh_area = np.sum(mesh_areas)
-            total_uv_area = np.sum(uv_areas)
+            J = get_jacobian(v, f, uv_c)
             
-            v *= np.sqrt(1.0/total_mesh_area)
-            uv *= np.sqrt(1.0/total_uv_area)
-            mesh_areas *= 1.0/total_mesh_area
-            uv_areas *= 1.0/total_uv_area
+            singular_values, min_singular_value, max_singular_value = get_singular_values(J)
             
-            area_distortions = np.abs(uv_areas - mesh_areas)
-            max_area_distortion = np.max(area_distortions)
-            total_area_distortion = np.sum(area_distortions)
+            percent_flipped = get_flipped(J)
             
-            uv_to_v = {}
-            for i, face in enumerate(f):
-                for j, v_idx in enumerate(face):
-                    uv_idx = ftc[i][j]
-                    uv_to_v[uv_idx] = v_idx
-                    
-            uv_c = np.array([co for i, co in sorted(enumerate(uv), key=lambda i_co: uv_to_v[i_co[0]])])
-            
-            G = igl.grad(v, f)
-            f1, f2, f3 = igl.local_basis(v, f)
-            
-            f1 = f1.reshape((-1, 3))
-            f2 = f2.reshape((-1, 3))
-            f3 = f3.reshape((-1, 3))
-            
-            dx = face_proj(f1) @ G
-            dy = face_proj(f2) @ G
-                        
-            J = np.zeros((f.shape[0], 2, 2))
-            
-            J[:,0,0] = dx @ uv_c[:,0]
-            J[:,0,1] = dy @ uv_c[:,0]
-            J[:,1,0] = dx @ uv_c[:,1]
-            J[:,1,1] = dy @ uv_c[:,1]
-            
-            singular_values = np.linalg.svd(J)[1]
-            min_singular_value = np.min(singular_values)
-            max_singular_value = np.max(singular_values)
-            
-            dets = np.linalg.det(J)
-            flipped = dets < 0
-            percent_flipped = np.sum(flipped)/flipped.shape[0]
-            
-            angle_distortions = singular_values[:, 0]/singular_values[:, 1] + singular_values[:, 1]/singular_values[:, 0]
-            max_angle_distortion = np.max(angle_distortions)
-            
-            finite_distortions = angle_distortions.copy()
-            finite_distortions[np.where(finite_distortions > 1e32)] = 1e32
-            total_angle_distortion = np.sum(mesh_areas * (finite_distortions - 2))
+            angle_distortions, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas)
             
             row = [fname, max_area_distortion, total_area_distortion, \
                   min_singular_value, max_singular_value, percent_flipped, \
@@ -186,4 +119,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dataset_folder = os.path.abspath(args.dataset)
     
-    get_dataset_characteristics()
+    #get_dataset_characteristics(dataset_folder)
+    get_uv_characteristics(dataset_folder)
