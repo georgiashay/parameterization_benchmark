@@ -15,6 +15,7 @@ from utilities.uv_coordinates import get_uv_coordinates
 from utilities.singular_values import get_singular_values
 from utilities.flipped import get_flipped
 from utilities.angle_distortion import get_angle_distortion
+from utilities.overlap_area import get_overlap_area
 
 
 def get_dataset_characteristics(dataset_folder):
@@ -60,7 +61,7 @@ def get_uv_characteristics(dataset_folder):
         
     df = pd.DataFrame(columns=["Filename", "Max Area Distortion", "Total Area Distortion", \
                                "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles",
-                               "Max Angle Distortion", "Total Angle Distortion"])
+                               "Bijectivity Violation Area", "Max Angle Distortion", "Total Angle Distortion"])
     
     tri_df = pd.DataFrame(columns=["Filename", "Triangle Number", "Singular Value 1", "Singular Value 2"])
     
@@ -92,11 +93,17 @@ def get_uv_characteristics(dataset_folder):
             
             percent_flipped = get_flipped(J)
             
+            try:
+                overlap_area = get_overlap_area(f, uv_c)
+            except Exception as e:
+                print(e)
+                overlap_area = 1
+            
             angle_distortions, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas)
             
             row = [fname, max_area_distortion, total_area_distortion, \
                   min_singular_value, max_singular_value, percent_flipped, \
-                  max_angle_distortion, total_angle_distortion]
+                  overlap_area, max_angle_distortion, total_angle_distortion]
             
             row_series = pd.Series(row, index=df.columns)
             
