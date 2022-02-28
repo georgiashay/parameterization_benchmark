@@ -93,11 +93,7 @@ def get_uv_characteristics(dataset_folder):
             
             percent_flipped = get_flipped(J)
             
-            try:
-                overlap_area = get_overlap_area(f, uv_c)
-            except Exception as e:
-                print(e)
-                overlap_area = 1
+            overlap_area = get_overlap_area(f, uv_c)
             
             angle_distortions, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas)
             
