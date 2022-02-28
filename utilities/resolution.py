@@ -24,4 +24,4 @@ def resolution(v, f, uv_c):
     #Thus, the resolution function is the max of the inverse of the singular
     # values (or Inf if there is a 0 singular value).
     
-    return np.amax(1 / sigmas)
+    return np.amax(1 / np.abs(sigmas))
