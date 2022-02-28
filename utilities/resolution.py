@@ -9,7 +9,8 @@ import numpy as np
 # (THIS IS UNSCALED!)
 def resolution(v, f, uv_c):
     #Scale UV map with a constant so that it fits into the unit square.
-    uv_dists = np.amax(uv_c, axis=0)
+    uv_dists = np.amax(uv_c, axis=0) - np.amin(uv_c, axis=0)
+    uv_c = uv_c / max(uv_dists)
 
     #Each triangle gets stretched in its two directions by the singular values.
     #Rotations are irrelevant.
