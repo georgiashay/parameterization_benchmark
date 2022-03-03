@@ -4,7 +4,7 @@ import os
 import argparse
 import pandas as pd
 import numpy as np
-import pymesh
+# import pymesh
 import scipy
 import igl
 
@@ -20,9 +20,9 @@ from utilities.overlap_area import get_overlap_area
 
 def get_dataset_characteristics(dataset_folder):
     df = pd.DataFrame(columns=["Filename", "Object Number", "Mesh Name", "Chart Number", \
-                               "Vertices", "Faces", "Euler Characteristic", "Genus", \
+                               "Vertices", "Faces", "Euler Characteristic",
                                "Total Boundary Length", "Boundary Faces", "Interior Faces", \
-                               "Edge Manifold", "Vertex Manifold", "Closed", "Connectivity Valid"])
+                               "Closed"])
     dataset_files = os.listdir(dataset_folder)
 
     for i, f in enumerate(dataset_files):
@@ -35,19 +35,18 @@ def get_dataset_characteristics(dataset_folder):
             mesh_name = "_".join(split_name[2:-1])
             chart_number = int(split_name[-1])
 
-            mesh = pymesh.load_mesh(fpath)
-            cut_mesh = pymesh.cut_mesh(mesh)
+            v, uv, n, f, ftc, fn = igl.read_obj(fpath)
             
-            connectivity_valid = np.all(cut_mesh.faces == mesh.faces)
-            is_manifold = mesh.is_edge_manifold() and mesh.is_vertex_manifold()
-            
-            boundary_triangles = np.sum(np.any(igl.triangle_triangle_adjacency(mesh.faces)[0].reshape((-1, 3)) == -1, axis=1))
-            interior_triangles = len(mesh.faces) - boundary_triangles
+            boundary_triangles = np.sum(np.any(igl.triangle_triangle_adjacency(f)[0].reshape((-1, 3)) == -1, axis=1))
+            interior_triangles = len(f) - boundary_triangles
+            is_closed = boundary_triangles == 0
+            euler_characteristic = igl.euler_characteristic(f)
+            boundary_length = len(igl.boundary_facets(f))
                
             row = [f, object_number, mesh_name, chart_number, \
-                   len(mesh.vertices), len(mesh.faces), mesh.euler_characteristic, mesh.genus, \
-                   mesh.num_boundary_edges, boundary_triangles, interior_triangles, \
-                   mesh.is_edge_manifold(), mesh.is_vertex_manifold(), mesh.is_closed(), connectivity_valid]
+                   len(v), len(f), euler_characteristic,
+                   boundary_length, boundary_triangles, interior_triangles, \
+                   is_closed]
             
             row_series = pd.Series(row, index=df.columns)
             
@@ -55,7 +54,7 @@ def get_dataset_characteristics(dataset_folder):
         
     df.to_csv("mesh_characteristics.csv")
     
-def get_uv_characteristics(dataset_folder):
+def get_uv_characteristics(dataset_folder, measure_folder):
     dataset_files = os.listdir(dataset_folder)
     
         
@@ -71,16 +70,6 @@ def get_uv_characteristics(dataset_folder):
         fpath = os.path.join(dataset_folder, fname)
         name, ext = os.path.splitext(fname)
         if os.path.isfile(fpath) and ext == ".obj" and not fname.endswith("_all.obj"):
-            mesh = pymesh.load_mesh(fpath)
-            
-            is_manifold = mesh.is_edge_manifold() and mesh.is_vertex_manifold()
-            cut_mesh = pymesh.cut_mesh(mesh)
-            connectivity_valid = np.all(cut_mesh.faces == mesh.faces)
-            
-            if not is_manifold or not connectivity_valid:
-                # TODO: remove these from dataset
-                continue
-             
             v, uv, f, ftc, mesh_areas, uv_areas = preprocess(fpath)
             
             area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
@@ -118,9 +107,11 @@ def get_uv_characteristics(dataset_folder):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run parameterization benchmark")
     parser.add_argument("--dataset", type=str, required=True, dest="dataset")
+    parser.add_argument("--measure", type=str, required=True, dest="measure")
 
     args = parser.parse_args()
     dataset_folder = os.path.abspath(args.dataset)
+    measure_folder = os.path.abspath(args.measure)
     
-    #get_dataset_characteristics(dataset_folder)
-    get_uv_characteristics(dataset_folder)
+    get_dataset_characteristics(dataset_folder, measure_folder)
+#     get_uv_characteristics(dataset_folder)
