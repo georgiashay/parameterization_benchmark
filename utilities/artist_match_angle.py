@@ -1,7 +1,7 @@
-# TODO: Georgia
+import numpy as np
 EPSILON = 1e-8
 
-def artist_angle_match(singular_values_artist, singular_values_measure):
+def get_artist_angle_match(singular_values_artist, singular_values_measure):
     d_you = singular_values_measure[:, 0]/singular_values_measure[:, 1] + \
             singular_values_measure[:, 1]/singular_values_measure[:, 0]
     d_artist = singular_values_artist[:, 0]/singular_values_artist[:, 1] + \

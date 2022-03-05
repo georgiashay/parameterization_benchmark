@@ -4,7 +4,6 @@ import os
 import argparse
 import pandas as pd
 import numpy as np
-# import pymesh
 import scipy
 import igl
 
@@ -16,6 +15,9 @@ from utilities.singular_values import get_singular_values
 from utilities.flipped import get_flipped
 from utilities.angle_distortion import get_angle_distortion
 from utilities.overlap_area import get_overlap_area
+from utilities.resolution import get_resolution
+from utilities.artist_match_area import get_artist_area_match
+from utilities.artist_match_angle import get_artist_angle_match
 
 
 def get_dataset_characteristics(dataset_folder):
@@ -59,26 +61,32 @@ def get_uv_characteristics(dataset_folder, measure_folder):
     
         
     df = pd.DataFrame(columns=["Filename", "Max Area Distortion", "Total Area Distortion", \
-                               "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles",
-                               "Bijectivity Violation Area", "Max Angle Distortion", "Total Angle Distortion"])
+                               "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles", \
+                               "Bijectivity Violation Area", "Max Angle Distortion", "Total Angle Distortion", \
+                               "Resolution", "Artist Area Match", "Artist Angle Match"])
     
     tri_df = pd.DataFrame(columns=["Filename", "Triangle Number", "Singular Value 1", "Singular Value 2"])
     
 
     for i, fname in enumerate(dataset_files):
         print(i+1, "/", len(dataset_files), fname)
-        fpath = os.path.join(dataset_folder, fname)
+        ofpath = os.path.join(dataset_folder, fname)
+        fpath = os.path.join(measure_folder, fname)
         name, ext = os.path.splitext(fname)
         if os.path.isfile(fpath) and ext == ".obj" and not fname.endswith("_all.obj"):
-            v, uv, f, ftc, mesh_areas, uv_areas = preprocess(fpath)
+            v_io, uv_io, f_o, ftc_o, v_o, uv_o, mesh_areas_o, uv_areas_o = preprocess(ofpath)
+            v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
             
             area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
             
             uv_c = get_uv_coordinates(f, ftc, uv)
+            uv_ci = get_uv_coordinates(f, ftc, uv_i)
             
             J = get_jacobian(v, f, uv_c)
+            J_i = get_jacobian(v_i, f, uv_ci)
             
             singular_values, min_singular_value, max_singular_value = get_singular_values(J)
+            singular_values_o, _, _ = get_singular_values(J_i)
             
             percent_flipped = get_flipped(J)
             
@@ -86,9 +94,14 @@ def get_uv_characteristics(dataset_folder, measure_folder):
             
             angle_distortions, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas)
             
+            resolution = get_resolution(v_i, f, uv_ci)
+            artist_angle_match = get_artist_angle_match(singular_values_o, singular_values)
+            artist_area_match = get_artist_area_match(mesh_areas, uv_areas_o, uv_areas)
+                
             row = [fname, max_area_distortion, total_area_distortion, \
                   min_singular_value, max_singular_value, percent_flipped, \
-                  overlap_area, max_angle_distortion, total_angle_distortion]
+                  overlap_area, max_angle_distortion, total_angle_distortion, \
+                  resolution, artist_area_match, artist_angle_match]
             
             row_series = pd.Series(row, index=df.columns)
             
@@ -113,5 +126,5 @@ if __name__ == "__main__":
     dataset_folder = os.path.abspath(args.dataset)
     measure_folder = os.path.abspath(args.measure)
     
-    get_dataset_characteristics(dataset_folder, measure_folder)
-#     get_uv_characteristics(dataset_folder)
+    #get_dataset_characteristics(dataset_folder)
+    get_uv_characteristics(dataset_folder, measure_folder)

@@ -1,3 +1,5 @@
+import numpy as np
+
 def get_artist_area_match(mesh_areas, uv_areas_artist, uv_areas_measure):
     my_area_diffs = np.abs(uv_areas_measure - mesh_areas)
     artist_area_diffs = np.abs(uv_areas_artist - mesh_areas)
