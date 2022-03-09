@@ -18,6 +18,9 @@ from utilities.overlap_area import get_overlap_area
 from utilities.resolution import get_resolution
 from utilities.artist_match_area import get_artist_area_match
 from utilities.artist_match_angle import get_artist_angle_match
+from utilities.uv_boundary_ratio import get_uv_boundary_length
+from utilities.artist_cut_match_mesh import get_artist_cut_match_mesh
+from utilities.artist_cut_match_uv import get_artist_cut_match_uv
 
 
 def get_dataset_characteristics(dataset_folder):
@@ -56,52 +59,95 @@ def get_dataset_characteristics(dataset_folder):
         
     df.to_csv("mesh_characteristics.csv")
     
-def get_uv_characteristics(dataset_folder, measure_folder):
-    dataset_files = os.listdir(dataset_folder)
-    
+def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
+    if use_cut_dataset:
+        dataset_subfolder = os.path.join(dataset_folder, "Cut")
+    else:
+        dataset_subfolder = os.path.join(dataset_folder, "Uncut")
+#     dataset_subfolder = dataset_folder
         
-    df = pd.DataFrame(columns=["Filename", "Max Area Distortion", "Total Area Distortion", \
-                               "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles", \
-                               "Bijectivity Violation Area", "Max Angle Distortion", "Total Angle Distortion", \
-                               "Resolution", "Artist Area Match", "Artist Angle Match"])
+    dataset_files = os.listdir(dataset_subfolder)
+    
+    columns = ["Filename", "Max Area Distortion", "Total Area Distortion", \
+               "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles", \
+               "Bijectivity Violation Area", "Max Angle Distortion", "Total Angle Distortion", \
+               "Resolution", "Artist Area Match", "Artist Angle Match"]
+    
+    if not use_cut_dataset:
+        columns += ["UV Cut Boundary Ratio", "Artist Mesh Cut Length Match", "Artist UV Cut Length Match"]
+        
+    df = pd.DataFrame(columns=columns)
     
     tri_df = pd.DataFrame(columns=["Filename", "Triangle Number", "Singular Value 1", "Singular Value 2"])
-    
 
     for i, fname in enumerate(dataset_files):
         print(i+1, "/", len(dataset_files), fname)
         ofpath = os.path.join(dataset_folder, fname)
         fpath = os.path.join(measure_folder, fname)
         name, ext = os.path.splitext(fname)
-        if os.path.isfile(fpath) and ext == ".obj" and not fname.endswith("_all.obj"):
+        if ext == ".obj" and not fname.endswith("_all.obj"):
+            if not os.path.isfile(fpath):
+                print("No parameterization provided for", fname)
+                row = [fname, np.nan, np.nan, np.nan, np.nan, np.nan, \
+                      np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+            
+                row_series = pd.Series(row, index=df.columns)
+
+                df = df.append(row_series, ignore_index=True)
+                continue
+                
             v_io, uv_io, f_o, ftc_o, v_o, uv_o, mesh_areas_o, uv_areas_o = preprocess(ofpath)
             v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
             
+            if not np.all(np.abs(v_i - v_io) <= 1e-8):
+                print("Mesh modified for", fname)
+                row = [fname, np.nan, np.nan, np.nan, np.nan, np.nan, \
+                      np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+            
+                row_series = pd.Series(row, index=df.columns)
+
+                df = df.append(row_series, ignore_index=True)
+                continue
+                
+            if np.any(np.isnan(uv_i)):
+                print("Nan texture coordinates for", fname)
+                row = [fname, np.nan, np.nan, np.nan, np.nan, np.nan, \
+                      np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+            
+                row_series = pd.Series(row, index=df.columns)
+
+                df = df.append(row_series, ignore_index=True)
+                continue
+           
             area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
             
-            uv_c = get_uv_coordinates(f, ftc, uv)
-            uv_ci = get_uv_coordinates(f, ftc, uv_i)
-            
-            J = get_jacobian(v, f, uv_c)
-            J_i = get_jacobian(v_i, f, uv_ci)
-            
+            J = get_jacobian(v, f, uv, ftc)
+            J_o = get_jacobian(v_o, f_o, uv_o, ftc_o)
+
             singular_values, min_singular_value, max_singular_value = get_singular_values(J)
-            singular_values_o, _, _ = get_singular_values(J_i)
+            singular_values_o, _, _ = get_singular_values(J_o)
             
             percent_flipped = get_flipped(J)
             
-            overlap_area = get_overlap_area(f, uv_c)
+            overlap_area = get_overlap_area(ftc, uv)
             
             angle_distortions, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas)
             
-            resolution = get_resolution(v_i, f, uv_ci)
-            artist_angle_match = get_artist_angle_match(singular_values_o, singular_values)
-            artist_area_match = get_artist_area_match(mesh_areas, uv_areas_o, uv_areas)
+            resolution = get_resolution(v_i, f, uv_i, ftc)
+            _, _, artist_angle_match = get_artist_angle_match(singular_values_o, singular_values)
+            _, _, artist_area_match = get_artist_area_match(mesh_areas, uv_areas_o, uv_areas)
                 
             row = [fname, max_area_distortion, total_area_distortion, \
                   min_singular_value, max_singular_value, percent_flipped, \
                   overlap_area, max_angle_distortion, total_angle_distortion, \
                   resolution, artist_area_match, artist_angle_match]
+            
+            if not use_cut_dataset:
+                boundary_length_ratio = get_uv_boundary_length(uv, ftc)
+                artist_cut_match_mesh = get_artist_cut_match_mesh(v_o, f_o, v, f)
+                artist_cut_match_uv = get_artist_cut_match_uv(uv_o, ftc_o, uv, ftc)
+                
+                row += [boundary_length_ratio, artist_cut_match_mesh, artist_cut_match_uv]
             
             row_series = pd.Series(row, index=df.columns)
             
@@ -119,12 +165,14 @@ def get_uv_characteristics(dataset_folder, measure_folder):
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run parameterization benchmark")
-    parser.add_argument("--dataset", type=str, required=True, dest="dataset")
-    parser.add_argument("--measure", type=str, required=True, dest="measure")
+    parser.add_argument("-d", "--dataset", type=str, required=True, dest="dataset")
+    parser.add_argument("-m", "--measure", type=str, required=True, dest="measure")
+    parser.add_argument("-u", "--uncut", dest="uncut", action="store_const", const=True, default=False)
 
     args = parser.parse_args()
     dataset_folder = os.path.abspath(args.dataset)
     measure_folder = os.path.abspath(args.measure)
+    use_cut_dataset = not args.uncut
     
     #get_dataset_characteristics(dataset_folder)
-    get_uv_characteristics(dataset_folder, measure_folder)
+    get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset)

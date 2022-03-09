@@ -1,10 +1,10 @@
 import numpy as np
 from shapely import geometry, ops
 
-def get_overlap_area(f, uv_c):
-    v_tri_p_indices = np.vstack((f[:, 0], f[:, 1], f[:, 2])).T
+def get_overlap_area(ftc, uv):
+    v_tri_p_indices = np.vstack((ftc[:, 0], ftc[:, 1], ftc[:, 2])).T
     
-    tri_points = uv_c[v_tri_p_indices]
+    tri_points = uv[v_tri_p_indices]
     
     triangles = []
     for tri in tri_points:

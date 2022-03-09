@@ -11,9 +11,17 @@ def face_proj(f):
     cols[2::3] += 2*num_faces
     return scipy.sparse.csr_matrix((data, (rows, cols)))
 
-def get_jacobian(v, f, uv_c):
-    G = igl.grad(v, f)
-    f1, f2, f3 = igl.local_basis(v, f)
+def get_jacobian(v, f, uv, ftc):
+    exploded_v_idxs = f.reshape((-1))
+    exploded_v = v[exploded_v_idxs]
+    exploded_f = np.arange(0, f.size).reshape((-1, 3))
+    
+    exploded_uv_idxs = ftc.reshape((-1))
+    exploded_uv = uv[exploded_uv_idxs]
+    exploded_ftc = np.arange(0, ftc.size).reshape((-1, 3))
+
+    G = igl.grad(exploded_v, exploded_f)
+    f1, f2, f3 = igl.local_basis(exploded_v, exploded_f)
 
     f1 = f1.reshape((-1, 3))
     f2 = f2.reshape((-1, 3))
@@ -24,9 +32,9 @@ def get_jacobian(v, f, uv_c):
 
     J = np.zeros((f.shape[0], 2, 2))
 
-    J[:,0,0] = dx @ uv_c[:,0]
-    J[:,0,1] = dy @ uv_c[:,0]
-    J[:,1,0] = dx @ uv_c[:,1]
-    J[:,1,1] = dy @ uv_c[:,1]
+    J[:,0,0] = dx @ exploded_uv[:,0]
+    J[:,0,1] = dy @ exploded_uv[:,0]
+    J[:,1,0] = dx @ exploded_uv[:,1]
+    J[:,1,1] = dy @ exploded_uv[:,1]
     
     return J

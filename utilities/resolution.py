@@ -5,14 +5,14 @@ import numpy as np
 # In order to achieve a resolution of 1 on at least every triangle, we need this
 #  resolution in the UV map
 # (THIS IS UNSCALED!)
-def get_resolution(v, f, uv_c):
+def get_resolution(v, f, uv, ftc):
     #Scale UV map with a constant so that it fits into the unit square.
-    uv_dists = np.amax(uv_c, axis=0) - np.amin(uv_c, axis=0)
-    uv_c = uv_c / max(uv_dists)
+    uv_dists = np.amax(uv, axis=0) - np.amin(uv, axis=0)
+    uv = uv / max(uv_dists)
 
     #Each triangle gets stretched in its two directions by the singular values.
     #Rotations are irrelevant.
-    J = get_jacobian(v, f, uv_c)
+    J = get_jacobian(v, f, uv, ftc)
     sigmas = np.linalg.svd(J)[1]
 
     #If the singular values are all 1, then a resolution of 1 can be achieved
