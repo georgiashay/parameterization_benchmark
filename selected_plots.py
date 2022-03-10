@@ -72,20 +72,38 @@ def selected_plots(filepath,artist_filepath=None,out_dir='.'):
     #https://towardsdatascience.com/a-simple-guide-to-beautiful-visualizations-in-python-f564e6b9d392
     sb.set_style('white')
     plt.rc('axes', titlesize=16)
-    plt.rc('axes', labelsize=14)
+    plt.rc('axes', labelsize=12)
     plt.rc('xtick', labelsize=12)
     plt.rc('ytick', labelsize=12)
     plt.rc('legend', fontsize=12)
     plt.rc('font', size=12)
-    palette = 'Pastel1'
+    plt.rc('font', family='serif') 
+    plt.rc('font', serif='Linux Libertine')
 
     #Percentage flipped triangles histogram
+    axis = percentage_flipped_triangles_hist(percentage_flipped_triangles)
+    percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
+    plt.savefig(percentage_flipped_path)
+    plt.clf()
+
+    #Bijectivity area violation histogram
+    axis = overlap_area_hist(bijectivity_violation_area)
+    bijectivity_violation_path = os.path.join(out_dir, 'bijectivity_violation.pdf')
+    plt.savefig(bijectivity_violation_path)
+    plt.clf()
+
+
+
+#Percentage flipped triangles histogram
+def percentage_flipped_triangles_hist(percentage_flipped_triangles,
+    nbins=9,
+    palette = 'Pastel1'):
     to_plot = [1. if p==None else p for p in percentage_flipped_triangles]
-    nbins=10
     plt.figure(figsize=(10,4), tight_layout=True)
     axis = sb.histplot(data=to_plot,
         bins=nbins,
         palette=palette,
+        shrink = 0.75,
         linewidth=2)
     axis.set(title='Percentage of flipped triangles',
         yscale='log',
@@ -93,13 +111,13 @@ def selected_plots(filepath,artist_filepath=None,out_dir='.'):
         ylabel='count (log scale)')
     axis.set_xticks(np.linspace(0., 1., num=nbins+1, endpoint=True))
     axis.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(xmax=1, decimals=None, symbol='%', is_latex=False))
-    percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
-    plt.savefig(percentage_flipped_path)
-    plt.clf()
+    return axis
 
-    #Bijectivity area violation histogram
+#Bijectivity area violation histogram
+def overlap_area_hist(bijectivity_violation_area,
+    nbins=10,
+    palette = 'Pastel1'):
     max_valid_area = max([0 if p==None else p for p in bijectivity_violation_area])
-    nbins=10
     valid_ticks = np.linspace(0., max_valid_area+1e-12, num=nbins, endpoint=True)
     inf_tick = max(1e-6, max_valid_area+2.*(valid_ticks[-1]-valid_ticks[-2]))
     inf_tick_label = max((1+1./nbins)*1e-6, max_valid_area+1.5*(valid_ticks[-1]-valid_ticks[-2]))
@@ -107,8 +125,9 @@ def selected_plots(filepath,artist_filepath=None,out_dir='.'):
     all_ticks = np.concatenate((valid_ticks, [inf_tick_label]))
     plt.figure(figsize=(10,4), tight_layout=True)
     axis = sb.histplot(data=to_plot,
-        bins=nbins,
+        bins=nbins+1,
         palette=palette,
+        shrink = 0.75,
         linewidth=2)
     axis.set(title='Overlapping area in UV map',
         yscale='log',
@@ -116,11 +135,7 @@ def selected_plots(filepath,artist_filepath=None,out_dir='.'):
         ylabel='count (log scale)')
     labels = ["%.2e"%a for a in valid_ticks] + ["∞"]
     axis.set_xticks(all_ticks, labels)
-    bijectivity_violation_path = os.path.join(out_dir, 'bijectivity_violation.pdf')
-    plt.savefig(bijectivity_violation_path)
-    plt.clf()
-
-
+    return axis
 
 
 
