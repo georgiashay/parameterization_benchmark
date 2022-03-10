@@ -14,7 +14,7 @@ import pandas as pb
 
 
 
-def selected_plots(filepath,artist_filepath=None):
+def selected_plots(filepath,artist_filepath=None,out_dir='.'):
     artist = artist_filepath != None
 
     read_first_row = False
@@ -80,20 +80,46 @@ def selected_plots(filepath,artist_filepath=None):
     palette = 'Pastel1'
 
     #Percentage flipped triangles histogram
+    to_plot = [1. if p==None else p for p in percentage_flipped_triangles]
     nbins=10
     plt.figure(figsize=(10,4), tight_layout=True)
-    axis = sb.histplot(data=percentage_flipped_triangles,
-        bins=10,
+    axis = sb.histplot(data=to_plot,
+        bins=nbins,
         palette=palette,
         linewidth=2)
-    axis.set(title='Percentage of flipped triangles, log scale',
+    axis.set(title='Percentage of flipped triangles',
         yscale='log',
-        xlabel='',
-        ylabel='count')
+        xlabel='(failed parametrizations reported as 100% flipped)',
+        ylabel='count (log scale)')
     axis.set_xticks(np.linspace(0., 1., num=nbins+1, endpoint=True))
-
     axis.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(xmax=1, decimals=None, symbol='%', is_latex=False))
-    plt.show()
+    percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
+    plt.savefig(percentage_flipped_path)
+    plt.clf()
+
+    #Bijectivity area violation histogram
+    max_valid_area = max([0 if p==None else p for p in bijectivity_violation_area])
+    nbins=10
+    valid_ticks = np.linspace(0., max_valid_area+1e-12, num=nbins, endpoint=True)
+    inf_tick = max(1e-6, max_valid_area+2.*(valid_ticks[-1]-valid_ticks[-2]))
+    inf_tick_label = max((1+1./nbins)*1e-6, max_valid_area+1.5*(valid_ticks[-1]-valid_ticks[-2]))
+    to_plot = [inf_tick if p==None else p for p in bijectivity_violation_area]
+    all_ticks = np.concatenate((valid_ticks, [inf_tick_label]))
+    plt.figure(figsize=(10,4), tight_layout=True)
+    axis = sb.histplot(data=to_plot,
+        bins=nbins,
+        palette=palette,
+        linewidth=2)
+    axis.set(title='Overlapping area in UV map',
+        yscale='log',
+        xlabel='(failed parametrizations reported as ∞)',
+        ylabel='count (log scale)')
+    labels = ["%.2e"%a for a in valid_ticks] + ["∞"]
+    axis.set_xticks(all_ticks, labels)
+    bijectivity_violation_path = os.path.join(out_dir, 'bijectivity_violation.pdf')
+    plt.savefig(bijectivity_violation_path)
+    plt.clf()
+
 
 
 
@@ -104,6 +130,8 @@ def to_float(val):
         return None
     try:
         f = float(val)
+        if not math.isfinite(f):
+            return None
         return f
     except:
         return None
@@ -112,6 +140,8 @@ def to_int(val):
         return None
     try:
         i = int(val)
+        if not math.isfinite(i):
+            return None
         return i
     except:
         return None
