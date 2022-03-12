@@ -9,7 +9,7 @@ def get_artist_angle_match(singular_values_artist, singular_values_measure):
     
     angle_distortion_diff = d_you - d_artist
     
-    discard_indices = np.where(np.logical_and(angle_distortion_diff >= 0, np.all(singular_values_artist > EPSILON, axis=1)))
+    discard_indices = np.where(np.logical_or(angle_distortion_diff < 0, np.any(singular_values_artist <= EPSILON, axis=1)))
     angle_distortion_diff[discard_indices] = 0
     
     max_diff = np.max(angle_distortion_diff)

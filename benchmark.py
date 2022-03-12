@@ -60,15 +60,15 @@ def get_dataset_characteristics(dataset_folder):
     df.to_csv("mesh_characteristics.csv")
     
 def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
-    if use_cut_dataset:
-        dataset_subfolder = os.path.join(dataset_folder, "Cut")
-    else:
-        dataset_subfolder = os.path.join(dataset_folder, "Uncut")
-#     dataset_subfolder = dataset_folder
+#     if use_cut_dataset:
+#         dataset_subfolder = os.path.join(dataset_folder, "Cut")
+#     else:
+#         dataset_subfolder = os.path.join(dataset_folder, "Uncut")
+    dataset_subfolder = dataset_folder
         
     dataset_files = os.listdir(dataset_subfolder)
     
-    columns = ["Filename", "Max Area Distortion", "Total Area Distortion", \
+    columns = ["Filename", "Faces", "Vertices", "Max Area Distortion", "Total Area Distortion", \
                "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles", \
                "Bijectivity Violation Area", "Max Angle Distortion", "Total Angle Distortion", \
                "Resolution", "Artist Area Match", "Artist Angle Match"]
@@ -88,7 +88,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
         if ext == ".obj" and not fname.endswith("_all.obj"):
             if not os.path.isfile(fpath):
                 print("No parameterization provided for", fname)
-                row = [fname, np.nan, np.nan, np.nan, np.nan, np.nan, \
+                row = [fname, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, \
                       np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
             
                 row_series = pd.Series(row, index=df.columns)
@@ -101,7 +101,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
             
             if not np.all(np.abs(v_i - v_io) <= 1e-8):
                 print("Mesh modified for", fname)
-                row = [fname, np.nan, np.nan, np.nan, np.nan, np.nan, \
+                row = [fname, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, \
                       np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
             
                 row_series = pd.Series(row, index=df.columns)
@@ -111,7 +111,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
                 
             if np.any(np.isnan(uv_i)):
                 print("Nan texture coordinates for", fname)
-                row = [fname, np.nan, np.nan, np.nan, np.nan, np.nan, \
+                row = [fname, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, \
                       np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
             
                 row_series = pd.Series(row, index=df.columns)
@@ -137,7 +137,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
             _, _, artist_angle_match = get_artist_angle_match(singular_values_o, singular_values)
             _, _, artist_area_match = get_artist_area_match(mesh_areas, uv_areas_o, uv_areas)
                 
-            row = [fname, max_area_distortion, total_area_distortion, \
+            row = [fname, len(f), len(v), max_area_distortion, total_area_distortion, \
                   min_singular_value, max_singular_value, percent_flipped, \
                   overlap_area, max_angle_distortion, total_angle_distortion, \
                   resolution, artist_area_match, artist_angle_match]
@@ -174,5 +174,5 @@ if __name__ == "__main__":
     measure_folder = os.path.abspath(args.measure)
     use_cut_dataset = not args.uncut
     
-    #get_dataset_characteristics(dataset_folder)
+#     get_dataset_characteristics(dataset_folder)
     get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset)
