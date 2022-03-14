@@ -1,9 +1,10 @@
 import numpy as np
 
 def get_area_distortion(uv_areas, mesh_areas):
-    area_distortions = np.abs(uv_areas - mesh_areas)
-    max_area_distortion = np.max(area_distortions)
-    total_area_distortion = np.sum(area_distortions)
+    area_distortions = uv_areas/mesh_areas + mesh_areas/uv_areas
+    max_area_distortion = np.max(area_distortions) - 2
     
-    return area_distortions, max_area_distortion, total_area_distortion
-            
+    area_errors = np.abs(uv_areas - mesh_areas)
+    average_area_error = np.sum(area_errors)
+    
+    return area_distortions, max_area_distortion, average_area_error

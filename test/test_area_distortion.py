@@ -15,6 +15,7 @@ def test_area_distortion_square():
     area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
     
     assert total_area_distortion == pytest.approx(0)
+    assert max_area_distortion == pytest.approx(0)
     
 def test_area_distortion_scaled_square():
     fpath = os.path.join(fixture_dir, "square_scaled.obj")
@@ -23,6 +24,7 @@ def test_area_distortion_scaled_square():
     area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
     
     assert total_area_distortion == pytest.approx(0)
+    assert max_area_distortion == pytest.approx(0)
     
 def test_area_distortion_stretched_square():
     fpath = os.path.join(fixture_dir, "square_stretched.obj")
@@ -31,6 +33,7 @@ def test_area_distortion_stretched_square():
     area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
     
     assert total_area_distortion == pytest.approx(0)
+    assert max_area_distortion == pytest.approx(0)
 
 def test_area_distortion_grid_shift():
     fpath = os.path.join(fixture_dir, "grid_shift.obj")
@@ -39,6 +42,7 @@ def test_area_distortion_grid_shift():
     area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
     
     assert total_area_distortion == pytest.approx(0.5)
+    assert max_area_distortion == pytest.approx(0.5)
     
 def test_area_distortion_cone_disk():
     fpath = os.path.join(fixture_dir, "cone_disk.obj")
@@ -47,6 +51,7 @@ def test_area_distortion_cone_disk():
     area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
     
     assert total_area_distortion == pytest.approx(0)
+    assert max_area_distortion == pytest.approx(0)
     
 def test_area_distortion_cone_pizza():
     fpath = os.path.join(fixture_dir, "cone_pizza.obj")
@@ -55,6 +60,7 @@ def test_area_distortion_cone_pizza():
     area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
     
     assert total_area_distortion == pytest.approx(0)
+    assert max_area_distortion == pytest.approx(0)
     
 def test_area_distortion_cone_tri():
     fpath = os.path.join(fixture_dir, "cone_tri.obj")
@@ -69,5 +75,6 @@ def test_area_distortion_cone_tri():
     expected = abs(0.5 - area_factor1/sum_area_factors) + abs(0.5 - area_factor2/sum_area_factors)
     
     assert total_area_distortion == pytest.approx(expected)
+    assert max_area_distortion == pytest.approx((area_factor2/sum_area_factors)/0.5 + 0.5/(area_factor2/sum_area_factors) - 2)
                                                  
     
