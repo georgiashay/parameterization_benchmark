@@ -10,7 +10,6 @@ import igl
 from utilities.area_distortion import get_area_distortion
 from utilities.preprocess import preprocess
 from utilities.jacobian import get_jacobian
-from utilities.uv_coordinates import get_uv_coordinates
 from utilities.singular_values import get_singular_values
 from utilities.flipped import get_flipped
 from utilities.angle_distortion import get_angle_distortion
@@ -21,6 +20,7 @@ from utilities.artist_match_angle import get_artist_angle_match
 from utilities.uv_boundary_ratio import get_uv_boundary_length
 from utilities.artist_cut_match_mesh import get_artist_cut_match_mesh
 from utilities.artist_cut_match_uv import get_artist_cut_match_uv
+from utilities.v_uv_map import get_v_uv_map
 
 
 def get_dataset_characteristics(dataset_folder):
@@ -60,11 +60,10 @@ def get_dataset_characteristics(dataset_folder):
     df.to_csv("mesh_characteristics.csv")
     
 def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
-#     if use_cut_dataset:
-#         dataset_subfolder = os.path.join(dataset_folder, "Cut")
-#     else:
-#         dataset_subfolder = os.path.join(dataset_folder, "Uncut")
-    dataset_subfolder = dataset_folder
+    if use_cut_dataset:
+        dataset_subfolder = os.path.join(dataset_folder, "Cut")
+    else:
+        dataset_subfolder = os.path.join(dataset_folder, "Uncut")
         
     dataset_files = os.listdir(dataset_subfolder)
     
@@ -82,7 +81,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
 
     for i, fname in enumerate(dataset_files):
         print(i+1, "/", len(dataset_files), fname)
-        ofpath = os.path.join(dataset_folder, fname)
+        ofpath = os.path.join(dataset_subfolder, fname)
         fpath = os.path.join(measure_folder, fname)
         name, ext = os.path.splitext(fname)
         if ext == ".obj" and not fname.endswith("_all.obj"):
@@ -144,7 +143,12 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
             
             if not use_cut_dataset:
                 boundary_length_ratio = get_uv_boundary_length(uv, ftc)
-                artist_cut_match_mesh = get_artist_cut_match_mesh(v_o, f_o, v, f)
+                    
+                v_to_uv_o, uv_to_v_o, uv_to_v_arr_o = get_v_uv_map(f_o, ftc_o)
+                v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f, ftc)
+
+                artist_cut_match_mesh = get_artist_cut_match_mesh(uv_to_v_arr_o, v_o, ftc_o, uv_to_v_arr, v, ftc)
+    
                 artist_cut_match_uv = get_artist_cut_match_uv(uv_o, ftc_o, uv, ftc)
                 
                 row += [boundary_length_ratio, artist_cut_match_mesh, artist_cut_match_uv]
