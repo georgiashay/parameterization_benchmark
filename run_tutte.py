@@ -25,4 +25,7 @@ if __name__ == "__main__":
     output_folder = os.path.abspath(args.output_folder)
     tutte_program = os.path.abspath(args.tutte_program)
     
+    if not os.path.exists(output_folder):
+        os.mkdir(output_folder)
+    
     produce_tutte_output(tutte_program, dataset_folder, output_folder)    
