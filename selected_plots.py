@@ -22,8 +22,10 @@ def selected_plots(path1,
     #Read in the CSV files to create a namespace
     data1 = read_csv(path1)
     data2 = None if path2==None else read_csv(path2)
-
-    # data2 = None
+    if data2 != None:
+        assert data1.object_id == data2.object_id
+        assert data1.nfaces == data2.nfaces
+        assert data1.nvertices == data2.nvertices
 
     #Creating nice plots using the guide from
     #https://towardsdatascience.com/a-simple-guide-to-beautiful-visualizations-in-python-f564e6b9d392
@@ -69,6 +71,24 @@ def selected_plots(path1,
     plt.savefig(bijectivity_violation_path)
     plt.clf()
 
+    #Area distortion
+    # print(f"Inf area distortion f1: {np.sum(np.array(data1.max_area_distortion) == None)}")
+    # print(f"Inf area distortion f2: {np.sum(np.array(data2.max_area_distortion) == None)}")
+    # print(f"empties f2: {np.where(np.array(data2.max_area_distortion) == None)}")
+
+    #Compare max angle distortion of data1 and data2
+    if data2!=None:
+        axis = scatter_comparison(data1.max_angle_distortion,
+            name1,
+            data2.max_angle_distortion,
+            name2,
+            huedata=data1.nfaces,
+            huename="#faces",
+            title="Maximal angle distortion")
+        max_angle_distortion_path = os.path.join(out_dir, 'max_angle_distortion.pdf')
+        plt.savefig(max_angle_distortion_path)
+        plt.clf()
+
 
 
 #Percentage flipped triangles histogram
@@ -78,6 +98,10 @@ def percentage_flipped_triangles_hist(data1,
     name2=None,
     nbins=11,
     palette = 'Pastel1'):
+
+    assert all(x==None or x>=0 for x in data1)
+    assert all(x==None or x>=0 for x in data2)
+    assert nbins>=2
 
     c = 1e-8
     def handle_extremes(data):
@@ -95,34 +119,29 @@ def percentage_flipped_triangles_hist(data1,
 
     to_plot1_lo,to_plot1 = preproc(data1)
     if data2 == None:
-        to_plot_lo = {name1 : to_plot1_lo}
-        to_plot = {name1 : to_plot1}
+        to_plot_lo = (to_plot1_lo)
+        to_plot = (to_plot1)
         names = [name1]
     else:
         to_plot2_lo,to_plot2 = preproc(data2)
-        to_plot_lo = {name1 : to_plot1_lo, name2 : to_plot2_lo}
-        to_plot = {name1 : to_plot1, name2 : to_plot2}
+        to_plot_lo = (to_plot1_lo, to_plot2_lo)
+        to_plot = (to_plot1, to_plot2)
         names = [name1,name2]
     plt.figure(figsize=(10,4), tight_layout=True)
-    axis = sb.histplot(data=to_plot,
+    axis = plt.gca()
+    axis.hist(to_plot,
         bins=nbins-1,
-        palette=palette,
-        shrink = 0.75,
-        linewidth=2,
-        legend=True,
-        hue_order=names,
-        multiple='dodge')
+        rwidth=0.75,
+        label=names,
+        color=plt.cm.get_cmap(palette).colors[0:len(to_plot)])
+    axis.legend()
 
     #Zero bin
-    axis = sb.histplot(data=to_plot_lo,
+    axis.hist(to_plot_lo,
         bins=1,
-        palette=palette,
-        shrink = 0.75/nbins,
-        linewidth=2,
-        legend=True,
-        hue_order=names,
-        multiple='dodge',
-        ax=axis)
+        rwidth=0.75/(nbins-1),
+        label=names,
+        color=plt.cm.get_cmap(palette).colors[0:len(to_plot)])
 
     #Draw dotted line separating left and right bins
     axis.plot([-0.3/nbins,-0.3/nbins], [0.,1.2*axis.get_ylim()[1]],
@@ -151,6 +170,10 @@ def overlap_area_hist(data1,
     name2=None,
     nbins=10,
     palette = 'Pastel1'):
+
+    assert all(x==None or x>=0 for x in data1)
+    assert all(x==None or x>=0 for x in data2)
+    assert nbins>=3
 
     c = 1e-8
     def non_none_max(data):
@@ -182,47 +205,38 @@ def overlap_area_hist(data1,
 
     to_plot1_lo,to_plot1,to_plot1_hi = preproc(data1)
     if data2 == None:
-        to_plot_lo = {name1 : to_plot1_lo}
-        to_plot = {name1 : to_plot1}
-        to_plot_hi = {name1 : to_plot1_hi}
+        to_plot_lo = [to_plot1_lo]
+        to_plot = [to_plot1]
+        to_plot_hi = [to_plot1_hi]
         names = [name1]
     else:
         to_plot2_lo,to_plot2,to_plot2_hi = preproc(data2)
-        to_plot_lo = {name1 : to_plot1_lo, name2 : to_plot2_lo}
-        to_plot = {name1 : to_plot1, name2 : to_plot2}
-        to_plot_hi = {name1 : to_plot1_hi, name2 : to_plot2_hi}
+        to_plot_lo = [to_plot1_lo, to_plot2_lo]
+        to_plot = [to_plot1, to_plot2]
+        to_plot_hi = [to_plot1_hi, to_plot2_hi]
         names = [name1,name2]
     plt.figure(figsize=(10,4), tight_layout=True)
-    axis = sb.histplot(data=to_plot,
+    axis = plt.gca()
+    axis.hist(to_plot,
         bins=nbins-2,
-        palette=palette,
-        shrink = 0.75,
-        linewidth=2,
-        legend=True,
-        hue_order=names,
-        multiple='dodge')
+        rwidth=0.75,
+        label=names,
+        color=plt.cm.get_cmap(palette).colors[0:len(to_plot)])
+    axis.legend()
 
     #Zero bin
-    axis = sb.histplot(data=to_plot_lo,
+    axis.hist(to_plot_lo,
         bins=1,
-        palette=palette,
-        shrink = 0.75/nbins,
-        linewidth=2,
-        legend=True,
-        hue_order=names,
-        multiple='dodge',
-        ax=axis)
+        rwidth=0.75/(nbins-2),
+        label=names,
+        color=plt.cm.get_cmap(palette).colors[0:len(to_plot)])
 
     #Inf bin
-    axis = sb.histplot(data=to_plot_hi,
+    axis.hist(to_plot_hi,
         bins=1,
-        palette=palette,
-        shrink = 0.75/nbins,
-        linewidth=2,
-        legend=True,
-        hue_order=names,
-        multiple='dodge',
-        ax=axis)
+        rwidth=0.75/(nbins-2),
+        label=names,
+        color=plt.cm.get_cmap(palette).colors[0:len(to_plot)])
 
     #Draw dotted line separating left and middle bins
     axis.plot([-0.5/nbins,-0.5/nbins], [0.,1.2*axis.get_ylim()[1]],
@@ -251,6 +265,129 @@ def overlap_area_hist(data1,
 
     return axis
 
+#Scatter comparison plot
+def scatter_comparison(data1,
+    name1,
+    data2,
+    name2,
+    huedata=None,
+    huename=None,
+    title='',
+    nticks=10,
+    nhueticks=6,
+    logx=True,
+    logy=True,
+    loghue=True,
+    palette = 'YlGnBu'):
+
+    assert all(x==None or x>=0 for x in data1)
+    assert all(x==None or x>=0 for x in data2)
+    if huedata!=None:
+        assert all(x!=None and math.isfinite(x) for x in huedata)
+    base = 10.
+
+    def non_none_max(data):
+        m = 0.
+        for x in data:
+            if x != None:
+                if math.isfinite(x):
+                    if x>m:
+                        m = x
+        return m
+    def non_none_min(data):
+        m = math.inf
+        for x in data:
+            if x != None:
+                if math.isfinite(x):
+                    if x<m:
+                        m = x
+        return m
+    smallestlognum = 1e-16
+    def handle_extremes(data,log):
+        cmax = non_none_max(data)
+        cmin = non_none_min(data)
+        if log:
+            inf_tick = base ** (math.log(cmax,base)*(1. + 1./nticks))
+        else:
+            inf_tick = cmax*(1. + 1./nticks)
+        lo = [x for x in data if x<math.inf]
+        hi = [inf_tick for x in data if x==math.inf]
+        data = lo + hi
+        if log:
+            if smallestlognum > cmin:
+                minlabel = 0
+                cmin = smallestlognum
+            else:
+                minlabel = cmin
+            data = [smallestlognum if x<smallestlognum else x for x in data]
+        else:
+            minlabel = None
+        return data,cmin,cmax,minlabel,inf_tick
+    def remove_nones(data):
+        return [math.inf if x==None else x for x in data]
+    def preproc(data,log):
+        return handle_extremes(remove_nones(data),log)
+
+    to_plot1,min1,max1,minlabel1,inf1 = preproc(data1,logx)
+    to_plot2,min2,max2,minlabel2,inf2 = preproc(data2,logy)
+
+    plt.figure(figsize=(10,4), tight_layout=True)
+    axis = plt.gca()
+    if huedata == None:
+        axis.scatter(to_plot1,
+            to_plot2,
+            s=3.,
+            cmap=palette)
+    else:
+        max_hue = max(huedata)
+        min_hue = min(huedata)
+        if(loghue):
+            min_hue = max(smallestlognum,min_hue)
+            normalizer = matplotlib.colors.SymLogNorm(linthresh=smallestlognum, vmin=min_hue, vmax=max_hue, base=base, clip=False)
+        else:
+            normalizer = matplotlib.colors.Normalize(vmin=min_hue, vmax=max_hue, clip=False)
+        sc = axis.scatter(to_plot1,
+            to_plot2,
+            c=huedata,
+            s= 3.,
+            norm=normalizer,
+            cmap=palette)
+        cbar = plt.colorbar(sc)
+        cbar.set_label(huename)
+
+    #Deal with labels
+    axis.set(title=title,
+        xscale='log' if logx else 'linear',
+        yscale='log' if logy else 'linear',
+        xlabel=name1,
+        ylabel=name2)
+    if logx:
+        loglabels = np.logspace(math.log(min1,base), math.log(max1,base), num=nticks-1, endpoint=True, base=base)
+        xticks = np.concatenate((loglabels, [inf1]))
+        xticklabels = ["%.1e"%minlabel1] + ["%.1e"%a for a in loglabels[1:]] + ["∞"]
+    else:
+        xticks = np.concatenate((np.linspace(0, max1, num=nticks-1), [inf1]))
+        xticklabels = ["%.1e"%a for a in np.linspace(0, max1, num=nticks-1, endpoint=True)] + ["∞"]
+    if logy:
+        loglabels = np.logspace(math.log(min2,base), math.log(max2,base), num=nticks-1, endpoint=True, base=base)
+        yticks = np.concatenate((loglabels, [inf2]))
+        yticklabels = ["%.1e"%minlabel2] + ["%.1e"%a for a in loglabels[1:]] + ["∞"]
+    else:
+        yticks = np.concatenate((np.linspace(0, max2, num=nticks-1), [inf2]))
+        yticklabels = ["%.1e"%a for a in np.linspace(0, max2, num=nticks-1, endpoint=True)] + ["∞"]
+    axis.set_xticks(xticks,xticklabels)
+    axis.set_yticks(yticks,yticklabels)
+    axis.margins(x=0.002, y=0.01)
+
+    axis.plot([min1 if logx else 0., inf1], [min2 if logy else 0., inf2],
+        linestyle='dashed',
+        dashes=(10,5),
+        linewidth=0.5,
+        alpha=0.5,
+        color=(0.,0.,0.))
+    axis.text(max1, max2, 'x=y     ', horizontalalignment='right', fontstyle='italic')
+
+    return axis
 
 #Read in data from CSV
 def read_csv(path):
@@ -322,6 +459,7 @@ def to_float(val):
     try:
         f = float(val)
         if not math.isfinite(f):
+            # For now, no special treatment of inf in plot
             return None
         return f
     except:
