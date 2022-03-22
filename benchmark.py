@@ -118,7 +118,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
                 df = df.append(row_series, ignore_index=True)
                 continue
            
-            area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas, v, f, uv, ftc)
+            area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
             
             J = get_jacobian(v, f, uv, ftc)
             J_o = get_jacobian(v_o, f_o, uv_o, ftc_o)
@@ -130,7 +130,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
             
             overlap_area = get_overlap_area(ftc, uv)
             
-            angle_distortions, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas)
+            angle_distortions, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
             
             resolution = get_resolution(v_i, f, uv_i, ftc)
             _, _, artist_angle_match = get_artist_angle_match(singular_values_o, singular_values)
