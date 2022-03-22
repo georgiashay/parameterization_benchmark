@@ -118,7 +118,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
                 df = df.append(row_series, ignore_index=True)
                 continue
            
-            area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
+            area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas, v, f, uv, ftc)
             
             J = get_jacobian(v, f, uv, ftc)
             J_o = get_jacobian(v_o, f_o, uv_o, ftc_o)
