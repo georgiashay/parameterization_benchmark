@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 def get_angles(v, f):
     side_lengths = np.linalg.norm(v[f[:, (0,1,2)]] - v[f[:, (1,2,0)]], axis=2)
@@ -20,7 +21,7 @@ def get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc):
 
     angles_mesh = get_angles(v, f)
     angles_uv = get_angles(uv, ftc)
-    
+        
     angle_errors = np.sum(np.abs(angles_mesh - angles_uv), axis=1)
     average_angle_error = np.sum(mesh_areas * angle_errors)
                                 

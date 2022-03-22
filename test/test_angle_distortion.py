@@ -6,6 +6,7 @@ from ..utilities.preprocess import preprocess
 import os
 import math
 import pytest
+import numpy as np
 
 test_dir = os.path.dirname(os.path.realpath(__file__))
 fixture_dir = os.path.join(test_dir, "fixtures")
@@ -75,3 +76,14 @@ def test_angle_distortion_triangle():
     
     assert max_angle_distortion == pytest.approx((sigma_1/sigma_2) + (sigma_2/sigma_1) - 2)
     assert total_angle_distortion == pytest.approx(angle_1 + angle_2)
+    
+def test_angle_distortion_flat_triangle():
+    fpath = os.path.join(fixture_dir, "flat_triangle.obj")
+    v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
+    J = get_jacobian(v, f, uv, ftc)
+    singular_values, min_singular_value, max_singular_value = get_singular_values(J)
+    
+    angle_distortions, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
+    
+    assert max_angle_distortion == pytest.approx(np.inf)
+    assert total_angle_distortion == pytest.approx(math.pi)
