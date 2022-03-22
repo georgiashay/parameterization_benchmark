@@ -37,4 +37,4 @@ def test_artist_cut_match_uv_icosa():
     scaled_edge_length_artist = 0.447785
     artist_length = 12 * scaled_edge_length_artist
   
-    assert artist_cut_match_uv == pytest.approx(measure_length - artist_length)
+    assert artist_cut_match_uv == pytest.approx(measure_length - artist_length, abs=1e-3)

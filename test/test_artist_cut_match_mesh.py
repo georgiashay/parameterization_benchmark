@@ -43,6 +43,6 @@ def test_artist_cut_match_mesh_icosa():
     measure_length = 11 * scaled_edge_length
     artist_length = 6 * scaled_edge_length
     
-    assert artist_cut_match_mesh == pytest.approx(measure_length - artist_length)
+    assert artist_cut_match_mesh == pytest.approx(measure_length - artist_length, abs=1e-3)
     
     

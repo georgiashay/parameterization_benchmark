@@ -50,7 +50,7 @@ def test_area_distortion_cone_disk():
     
     area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
     
-    assert total_area_distortion == pytest.approx(0)
+    assert total_area_distortion == pytest.approx(0, abs=1e-6)
     assert max_area_distortion == pytest.approx(0)
     
 def test_area_distortion_cone_pizza():
@@ -59,8 +59,8 @@ def test_area_distortion_cone_pizza():
     
     area_distortions, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
     
-    assert total_area_distortion == pytest.approx(0)
-    assert max_area_distortion == pytest.approx(0)
+    assert total_area_distortion == pytest.approx(0, abs=1e-4)
+    assert max_area_distortion == pytest.approx(0, abs=1e-6)
     
 def test_area_distortion_cone_tri():
     fpath = os.path.join(fixture_dir, "cone_tri.obj")
