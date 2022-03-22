@@ -25,4 +25,4 @@ def get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc):
     angle_errors = np.sum(np.abs(angles_mesh - angles_uv), axis=1)
     average_angle_error = np.sum(mesh_areas * angle_errors)
                                 
-    return angle_distortions, max_angle_distortion, average_angle_error
+    return angle_distortions, angle_errors, max_angle_distortion, average_angle_error
