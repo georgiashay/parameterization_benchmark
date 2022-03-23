@@ -26,7 +26,7 @@ def get_jacobian(v, f, uv, ftc):
     f1 = f1.reshape((-1, 3))
     f2 = f2.reshape((-1, 3))
     f3 = f3.reshape((-1, 3))
-
+    
     dx = face_proj(f1) @ G
     dy = face_proj(f2) @ G
 
