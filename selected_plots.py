@@ -61,7 +61,7 @@ def selected_plots(path1,
             comment='(failed parametrizations reported as 100% flipped)')
     percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
     plt.savefig(percentage_flipped_path)
-    plt.clf()
+    plt.close()
 
     #Bijectivity area violation histogram
     if data2==None:
@@ -78,72 +78,72 @@ def selected_plots(path1,
             comment='(failed parametrizations reported as ∞)')
     bijectivity_violation_path = os.path.join(out_dir, 'bijectivity_violation.pdf')
     plt.savefig(bijectivity_violation_path)
-    plt.clf()
+    plt.close()
 
-    #Compare max angle distortion
-    if produce_scatter:
-        if data2!=None:
-            axis = scatter_comparison(data1.max_angle_distortion,
-                name1,
-                data2.max_angle_distortion,
-                name2,
-                huedata=data1.nfaces,
-                huename="#faces",
-                title="Maximal angle distortion")
-            max_angle_distortion_path = os.path.join(out_dir, 'max_angle_distortion_comp.pdf')
-            plt.savefig(max_angle_distortion_path)
-            plt.clf()
+    def make_graphs_for_prop(prop,
+        title,
+        produce_scatter=True):
 
-        if data2==None:
-            axis = scatter_vs_property(data1.nfaces,
-                "#faces",
-                data1.max_angle_distortion,
-                name1,
-                title="Maximal angle distortion")
-        else:
-            axis = scatter_vs_property(data1.nfaces,
-                "#faces",
-                data1.max_angle_distortion,
-                name1,
-                data2.max_angle_distortion,
-                name2,
-                title="Maximal angle distortion")
-        max_angle_distortion_path = os.path.join(out_dir, 'max_angle_distortion.pdf')
-        plt.savefig(max_angle_distortion_path)
-        plt.clf()
+        # Pyplot hist does not wirk with all data.
+        # if data2==None:
+        #     axis = hist(getattr(data1, prop),
+        #         name1,
+        #         title=title,
+        #         comment='(failed parametrizations and values >1e8 reported as ∞)',
+        #         zero_bin=False,
+        #         inf_bin=True)
+        # else:
+        #     axis = hist(getattr(data1, prop),
+        #         name1,
+        #         getattr(data2, prop),
+        #         name2,
+        #         title=title,
+        #         comment='(failed parametrizations and values >1e8 reported as ∞)',
+        #         zero_bin=False,
+        #         inf_bin=True)
+        # hist_path = os.path.join(out_dir, f'{prop}.pdf')
+        # plt.savefig(hist_path)
+        # plt.close()
+
+        if produce_scatter:
+            if data2!=None:
+                axis = scatter_comparison(getattr(data1, prop),
+                    name1,
+                    getattr(data2, prop),
+                    name2,
+                    huedata=data1.nfaces,
+                    huename="#faces",
+                    title=title)
+                scatter_comp_path = os.path.join(out_dir, f'{prop}_scatter_comp.pdf')
+                plt.savefig(scatter_comp_path)
+                plt.close()
+
+            if data2==None:
+                axis = scatter_vs_property(data1.nfaces,
+                    "#faces",
+                    getattr(data1, prop),
+                    name1,
+                    title=title)
+            else:
+                axis = scatter_vs_property(data1.nfaces,
+                    "#faces",
+                    getattr(data1, prop),
+                    name1,
+                    getattr(data2, prop),
+                    name2,
+                    title=title)
+            scatter_path = os.path.join(out_dir, f'{prop}_scatter.pdf')
+            plt.savefig(scatter_path)
+            plt.close()
 
 
-    #Compare total angle distortion
-    if produce_scatter:
-        if data2!=None:
-            axis = scatter_comparison(data1.max_angle_distortion,
-                name1,
-                data2.max_angle_distortion,
-                name2,
-                huedata=data1.nfaces,
-                huename="#faces",
-                title="Total angle distortion")
-            total_angle_distortion_path = os.path.join(out_dir, 'total_angle_distortion_comp.pdf')
-            plt.savefig(total_angle_distortion_path)
-            plt.clf()
-
-        if data2==None:
-            axis = scatter_vs_property(data1.nfaces,
-                "#faces",
-                data1.max_angle_distortion,
-                name1,
-                title="Total angle distortion")
-        else:
-            axis = scatter_vs_property(data1.nfaces,
-                "#faces",
-                data1.max_angle_distortion,
-                name1,
-                data2.max_angle_distortion,
-                name2,
-                title="Total angle distortion")
-        total_angle_distortion_path = os.path.join(out_dir, 'total_angle_distortion.pdf')
-        plt.savefig(total_angle_distortion_path)
-        plt.clf()
+    #Make plots for all properties
+    make_graphs_for_prop('max_angle_distortion',
+        'Maximal angle distortion',
+        produce_scatter=produce_scatter)
+    make_graphs_for_prop('total_angle_distortion',
+        'Total angle distortion',
+        produce_scatter=produce_scatter)
 
 
 
@@ -157,6 +157,23 @@ def selected_plots(path1,
                 # assert row[12] == 'Resolution'
                 # assert row[13] == 'Artist Area Match'
                 # assert row[14] == 'Artist Angle Match'
+
+    # data = SimpleNamespace()
+    # data.object_id = []
+    # data.nfaces = []
+    # data.nvertices = []
+    # data.filename = []
+    # data.max_area_distortion = []
+    # data.total_area_distortion = []
+    # data.min_singular_value = []
+    # data.max_singular_value = []
+    # data.percentage_flipped_triangles = []
+    # data.bijectivity_violation_area = []
+    # data.max_angle_distortion = []
+    # data.total_angle_distortion = []
+    # data.resolution = []
+    # data.artist_area_match = []
+    # data.artist_angle_match = []
 
 
 
@@ -272,6 +289,7 @@ def hist(data1,
     rnbins = nbins - (zero_bin==True) - (inf_bin==True)
 
     c = 1e-8
+    d = 1e2
     def non_none_max(data):
         m = 1.
         for x in data:
@@ -279,14 +297,28 @@ def hist(data1,
                 if math.isfinite(x):
                     if x>m:
                         m = x
-        return m
+        return min(m,d)
     cmax = non_none_max(data1) if data2==None else max(non_none_max(data1),non_none_max(data2))
     zero_tick = - 1.5*cmax/nbins
     inf_tick = cmax*(1. + 1.5/nbins)
+
     def handle_extremes(data):
-        lo = [zero_tick for x in data if x<c]
-        mid = [x for x in data if (x>=c and x<math.inf)]
-        hi = [inf_tick for x in data if x==math.inf]
+        if zero_bin:
+            lo = [zero_tick for x in data if x<c]
+            if inf_bin:
+                mid = [x for x in data if (x>=c and x<d)]
+                hi = [inf_tick for x in data if x==d]
+            else:
+                mid = [x for x in data if x>=c]
+                hi = []
+        else:
+            lo = []
+            if inf_bin:
+                mid = [x for x in data if x<d]
+                hi = [inf_tick for x in data if x==d]
+            else:
+                mid = data
+                hi = []
         if len(lo)==0:
             lo = pd.Series([],dtype=pd.Float64Dtype()) 
         if len(mid)==0:
@@ -294,10 +326,10 @@ def hist(data1,
         if len(hi)==0:
             hi = pd.Series([],dtype=pd.Float64Dtype()) 
         return lo,mid,hi
-    def remove_nones(data):
-        return [math.inf if x==None else x for x in data]
+    def remove_nones_and_clip(data):
+        return [d if x==None or x>d else x for x in data]
     def preproc(data):
-        return handle_extremes(remove_nones(data))
+        return handle_extremes(remove_nones_and_clip(data))
 
     to_plot1_lo,to_plot1,to_plot1_hi = preproc(data1)
     draw_zero_bin = zero_bin
@@ -324,7 +356,7 @@ def hist(data1,
         names = [name1,name2]
         colors = (plt.cm.get_cmap(palette).colors[0], plt.cm.get_cmap(palette).colors[1])
 
-    plt.figure(figsize=(10,4), tight_layout=True)
+    plt.figure(figsize=(10,4), tight_layout=False)
     axis = plt.gca()
     axis.hist(to_plot,
         bins=rnbins,
@@ -337,7 +369,7 @@ def hist(data1,
     if draw_zero_bin:
         axis.hist(to_plot_lo,
             bins=1,
-            rwidth=0.75/(nbins-2),
+            rwidth=0.75/(nbins-1-(draw_inf_bin)),
             label=names,
             color=colors)
 
@@ -345,7 +377,7 @@ def hist(data1,
     if draw_inf_bin:
         axis.hist(to_plot_hi,
             bins=1,
-            rwidth=0.75/(nbins-2),
+            width=0.75/(nbins-1-(draw_zero_bin)),
             label=names,
             color=colors)
 
