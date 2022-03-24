@@ -143,7 +143,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
                   resolution, artist_area_match, artist_angle_match]
             
             if not use_cut_dataset:
-                boundary_length_ratio = get_uv_boundary_length(uv, ftc)
+                boundary_length_ratio, new_boundary_length_ratio = get_uv_boundary_length(uv, ftc)
                     
                 v_to_uv_o, uv_to_v_o, uv_to_v_arr_o = get_v_uv_map(f_o, ftc_o)
                 v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f, ftc)
@@ -152,7 +152,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
     
                 artist_cut_match_uv = get_artist_cut_match_uv(uv_o, ftc_o, uv, ftc)
                 
-                row += [boundary_length_ratio, artist_cut_match_mesh, artist_cut_match_uv]
+                row += [new_boundary_length_ratio, artist_cut_match_mesh, artist_cut_match_uv]
             
             row_series = pd.Series(row, index=df.columns)
             

@@ -42,4 +42,13 @@ def test_overlap_area_half_strip_fold():
     
     overlap_area = get_overlap_area(ftc, uv)
        
-    assert overlap_area == pytest.approx(3/4)
+    assert overlap_area == pytest.approx(0.7)
+    
+def test_overlap_area_half_strip_fold_partial():
+    fpath = os.path.join(fixture_dir, "strip_fold_partial.obj")
+    
+    v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
+    
+    overlap_area = get_overlap_area(ftc, uv)
+       
+    assert overlap_area == pytest.approx(0.55)
