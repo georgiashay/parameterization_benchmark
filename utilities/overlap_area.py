@@ -1,7 +1,9 @@
 import numpy as np
 from shapely import geometry, ops
 
-def get_overlap_area(ftc, uv):
+def get_overlap_area(ftc, uv, singular_values):
+    magnification = singular_values[:, 0] * singular_values[:, 1]
+    
     v_tri_p_indices = np.vstack((ftc[:, 0], ftc[:, 1], ftc[:, 2])).T
     
     tri_points = uv[v_tri_p_indices]
@@ -12,13 +14,11 @@ def get_overlap_area(ftc, uv):
         triangle = geometry.Polygon(point_list)
         triangles.append(triangle)
 
-    uv_triangles = geometry.MultiPolygon(triangles)
-    
-    real_area = ops.unary_union(triangles).area
-    overlap_area = 1 - real_area
-    
-    if overlap_area < 0:
-        # Floating point issues
-        overlap_area = 0
-        
+    overlap_area = 0
+    for i, tri1 in enumerate(triangles):
+        for j, tri2 in enumerate(triangles):
+            if i != j:
+                intersect_area = tri1.intersection(tri2).area
+                overlap_area += intersect_area/magnification[i]
+                
     return overlap_area

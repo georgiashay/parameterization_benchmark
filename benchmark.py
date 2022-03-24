@@ -128,7 +128,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
             
             percent_flipped = get_flipped(J)
             
-            overlap_area = get_overlap_area(ftc, uv)
+            overlap_area = get_overlap_area(ftc, uv, singular_values)
             
             angle_distortions, angle_errors, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
             _, angle_errors_o, _, _ = get_angle_distortion(singular_values_o, mesh_areas_o, v_o, f_o, uv_o, ftc_o)
