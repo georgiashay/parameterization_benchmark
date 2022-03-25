@@ -59,7 +59,7 @@ def get_dataset_characteristics(dataset_folder):
         
     df.to_csv("mesh_characteristics.csv")
     
-def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
+def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_name):
     if use_cut_dataset:
         dataset_subfolder = os.path.join(dataset_folder, "Cut")
     else:
@@ -69,7 +69,8 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
     
     columns = ["Filename", "Faces", "Vertices", "Max Area Distortion", "Total Area Distortion", \
                "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles", \
-               "Bijectivity Violation Area", "Max Angle Distortion", "Total Angle Distortion", \
+               #"Bijectivity Violation Area", 
+               "Max Angle Distortion", "Total Angle Distortion", \
                "Resolution", "Artist Area Match", "Artist Angle Match"]
     
     if not use_cut_dataset:
@@ -128,7 +129,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
             
             percent_flipped = get_flipped(J)
             
-            overlap_area = get_overlap_area(ftc, uv, singular_values)
+#             overlap_area = get_overlap_area(ftc, uv, singular_values)
             
             angle_distortions, angle_errors, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
             _, angle_errors_o, _, _ = get_angle_distortion(singular_values_o, mesh_areas_o, v_o, f_o, uv_o, ftc_o)
@@ -139,7 +140,8 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
                 
             row = [fname, len(f), len(v), max_area_distortion, total_area_distortion, \
                   min_singular_value, max_singular_value, percent_flipped, \
-                  overlap_area, max_angle_distortion, total_angle_distortion, \
+                  #overlap_area, 
+                  max_angle_distortion, total_angle_distortion, \
                   resolution, artist_area_match, artist_angle_match]
             
             if not use_cut_dataset:
@@ -164,7 +166,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset):
             tri_df = tri_df.append(new_tri_df, ignore_index=True)
             
             
-    df.to_csv("distortion_characteristics.csv")
+    df.to_csv(csv_name)
     tri_df.to_csv("triangle_singular_values.csv")
 
     
@@ -174,11 +176,13 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dataset", type=str, required=True, dest="dataset")
     parser.add_argument("-m", "--measure", type=str, required=True, dest="measure")
     parser.add_argument("-u", "--uncut", dest="uncut", action="store_const", const=True, default=False)
+    parser.add_argument("-o", "--output", dest="output", default="distortion_characteristics.csv")
 
     args = parser.parse_args()
     dataset_folder = os.path.abspath(args.dataset)
     measure_folder = os.path.abspath(args.measure)
     use_cut_dataset = not args.uncut
+    csv_name = os.path.abspath(args.output)
     
 #     get_dataset_characteristics(dataset_folder)
-    get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset)
+    get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_name)
