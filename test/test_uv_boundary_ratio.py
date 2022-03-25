@@ -1,4 +1,5 @@
 from ..utilities.uv_boundary_ratio import get_uv_boundary_length
+from ..utilities.v_uv_map import get_v_uv_map
 from ..utilities.preprocess import preprocess
 
 import os
@@ -14,7 +15,8 @@ def test_uv_boundary_ratio_square():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc)
+    v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f, ftc)
+    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc, f, uv_to_v_arr)
     
     assert uv_boundary_length == pytest.approx(4)
     assert new_uv_boundary_length == pytest.approx(0)
@@ -24,7 +26,8 @@ def test_uv_boundary_ratio_square_scaled():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc)
+    v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f, ftc)
+    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc, f, uv_to_v_arr)
     
     assert uv_boundary_length == pytest.approx(4)
     assert new_uv_boundary_length == pytest.approx(0)
@@ -34,7 +37,8 @@ def test_uv_boundary_ratio_grid_shift():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc)
+    v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f, ftc)
+    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc, f, uv_to_v_arr)
     
     assert uv_boundary_length == pytest.approx(12/math.sqrt(8))
     assert new_uv_boundary_length == pytest.approx(0)
@@ -44,7 +48,8 @@ def test_uv_boundary_ratio_cone_disk():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc)
+    v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f, ftc)
+    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc, f, uv_to_v_arr)
     
     s = 1/math.sqrt(2 * (1 + math.sqrt(2)))
     
@@ -56,7 +61,8 @@ def test_uv_boundary_ratio_cone_pizza():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc)
+    v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f, ftc)
+    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc, f, uv_to_v_arr)
     
     s = 1/math.sqrt(2 * (1 + math.sqrt(2)))
     d = (s/2)/math.sin(math.pi/8)
@@ -69,17 +75,19 @@ def test_uv_boundary_ratio_cube():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc)
+    v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f, ftc)
+    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc, f, uv_to_v_arr)
     
     assert uv_boundary_length == pytest.approx(14/math.sqrt(6))
-    assert new_uv_boundary_length == pytest.approx(0)
+    assert new_uv_boundary_length == pytest.approx(14/math.sqrt(6))
 
 def test_uv_boundary_ratio_cone_tri():
     fpath = os.path.join(fixture_dir, "cone_tri.obj")
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc)
+    v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f, ftc)
+    uv_boundary_length, new_uv_boundary_length = get_uv_boundary_length(uv, ftc, f, uv_to_v_arr)
     
     b = 2
     a = math.sqrt(2)
