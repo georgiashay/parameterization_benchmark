@@ -18,8 +18,7 @@ from utilities.overlap_area import get_overlap_area
 from utilities.resolution import get_resolution
 from selected_plots import selected_plots
 
-# selected_plots('/Users/ostein/Desktop/distortion_characteristics_method.csv', '/Users/ostein/Desktop/distortion_characteristics_artist.csv')
-
-selected_plots('/home/ostein/Desktop/f1.csv', '/home/ostein/Desktop/f2.csv')
+# selected_plots('/home/ostein/Desktop/new_result.csv', '/home/ostein/Desktop/new_artist.csv')
+selected_plots('/Users/ostein/Desktop/new_result.csv', '/Users/ostein/Desktop/new_artist.csv')
 
 
