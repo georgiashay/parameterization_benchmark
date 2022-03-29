@@ -9,7 +9,6 @@ import numpy as np
 import scipy
 import matplotlib
 import matplotlib.pyplot as plt
-import seaborn as sb
 import pandas as pd
 from types import SimpleNamespace
 
@@ -25,12 +24,11 @@ def selected_plots(path1,
     data2 = None if path2==None else read_csv(path2)
     if data2 != None:
         assert data1.object_id == data2.object_id
-        assert data1.nfaces == data2.nfaces
-        assert data1.nvertices == data2.nvertices
+        # assert data1.nfaces == data2.nfaces
+        # assert data1.nvertices == data2.nvertices
+        data1.nfaces = data2.nfaces
+        data1.nvertices = data2.nvertices
 
-    #Creating nice plots using the guide from
-    #https://towardsdatascience.com/a-simple-guide-to-beautiful-visualizations-in-python-f564e6b9d392
-    sb.set_style('white')
     plt.rc('axes', titlesize=16)
     plt.rc('axes', labelsize=12)
     plt.rc('xtick', labelsize=12)
@@ -47,66 +45,80 @@ def selected_plots(path1,
     plt.rc('font', serif='Linux Libertine')
 
     #Percentage flipped triangles histogram
+    data1_flipped = [None if x==None else min(1.-x,x) for x in data1.percentage_flipped_triangles]
     if data2==None:
-        axis = percent_hist(data1.percentage_flipped_triangles,
+        axis = hist(data1_flipped,
             name1,
             title='Percentage of flipped triangles',
-            comment='(failed parametrizations reported as 100% flipped)')
+            comment='(reporting smaller of flipped and 100%-flipped, failed parametrizations are ∞)',
+            percentx=True)
     else:
-        axis = percent_hist(data1.percentage_flipped_triangles,
+        data2_flipped = [None if x==None else min(1.-x,x) for x in data2.percentage_flipped_triangles]
+        axis = hist(data1_flipped,
             name1,
-            data2.percentage_flipped_triangles,
+            data2_flipped,
             name2,
             title='Percentage of flipped triangles',
-            comment='(failed parametrizations reported as 100% flipped)')
+            comment='(reporting smaller of flipped and 100%-flipped, failed parametrizations are ∞)',
+            percentx=True)
     percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
     plt.savefig(percentage_flipped_path)
     plt.close()
 
     #Bijectivity area violation histogram
-    if data2==None:
-        axis = hist(data1.bijectivity_violation_area,
-            name1,
-            title='Overlapping area in UV map',
-            comment='(failed parametrizations reported as ∞)')
-    else:
-        axis = hist(data1.bijectivity_violation_area,
-            name1,
-            data2.bijectivity_violation_area,
-            name2,
-            title='Overlapping area in UV map',
-            comment='(failed parametrizations reported as ∞)')
-    bijectivity_violation_path = os.path.join(out_dir, 'bijectivity_violation.pdf')
-    plt.savefig(bijectivity_violation_path)
-    plt.close()
+    # if data2==None:
+    #     axis = hist(data1.bijectivity_violation_area,
+    #         name1,
+    #         logx=True,
+    #         title='Overlapping area in UV map',
+    #         comment='(failed parametrizations are ∞)',
+    #         zero_bin=False)
+    # else:
+    #     axis = hist(data1.bijectivity_violation_area,
+    #         name1,
+    #         data2.bijectivity_violation_area,
+    #         name2,
+    #         logx=True,
+    #         title='Overlapping area in UV map',
+    #         comment='(failed parametrizations are ∞)',
+    #         zero_bin=False)
+    # bijectivity_violation_path = os.path.join(out_dir, 'bijectivity_violation.pdf')
+    # plt.savefig(bijectivity_violation_path)
+    # plt.close()
 
     def make_graphs_for_prop(prop,
         title,
-        produce_scatter=True):
+        produce_scatter=True,
+        plot_data2=True):
 
-        # Pyplot hist does not wirk with all data.
-        # if data2==None:
-        #     axis = hist(getattr(data1, prop),
-        #         name1,
-        #         title=title,
-        #         comment='(failed parametrizations and values >1e8 reported as ∞)',
-        #         zero_bin=False,
-        #         inf_bin=True)
-        # else:
-        #     axis = hist(getattr(data1, prop),
-        #         name1,
-        #         getattr(data2, prop),
-        #         name2,
-        #         title=title,
-        #         comment='(failed parametrizations and values >1e8 reported as ∞)',
-        #         zero_bin=False,
-        #         inf_bin=True)
-        # hist_path = os.path.join(out_dir, f'{prop}.pdf')
-        # plt.savefig(hist_path)
-        # plt.close()
+        plot_2 = plot_data2 
+        if data2==None:
+            plot_2 = False
+
+        if plot_2:
+            axis = hist(getattr(data1, prop),
+                name1,
+                getattr(data2, prop),
+                name2,
+                title=title,
+                comment='(failed parametrizations are ∞)',
+                logx=True,
+                zero_bin=False,
+                inf_bin=True)
+        else:
+            axis = hist(getattr(data1, prop),
+                name1,
+                title=title,
+                comment='(failed parametrizations are ∞)',
+                logx=True,
+                zero_bin=False,
+                inf_bin=True)
+        percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
+        plt.savefig(percentage_flipped_path)
+        plt.close()
 
         if produce_scatter:
-            if data2!=None:
+            if plot_2:
                 axis = scatter_comparison(getattr(data1, prop),
                     name1,
                     getattr(data2, prop),
@@ -118,23 +130,23 @@ def selected_plots(path1,
                 plt.savefig(scatter_comp_path)
                 plt.close()
 
-            if data2==None:
-                axis = scatter_vs_property(data1.nfaces,
-                    "#faces",
-                    getattr(data1, prop),
-                    name1,
-                    title=title)
-            else:
-                axis = scatter_vs_property(data1.nfaces,
-                    "#faces",
-                    getattr(data1, prop),
-                    name1,
-                    getattr(data2, prop),
-                    name2,
-                    title=title)
-            scatter_path = os.path.join(out_dir, f'{prop}_scatter.pdf')
-            plt.savefig(scatter_path)
-            plt.close()
+            # if not plot_2:
+            #     axis = scatter_vs_property(data1.nfaces,
+            #         "#faces",
+            #         getattr(data1, prop),
+            #         name1,
+            #         title=title)
+            # else:
+            #     axis = scatter_vs_property(data1.nfaces,
+            #         "#faces",
+            #         getattr(data1, prop),
+            #         name1,
+            #         getattr(data2, prop),
+            #         name2,
+            #         title=title)
+            # scatter_path = os.path.join(out_dir, f'{prop}_scatter.pdf')
+            # plt.savefig(scatter_path)
+            # plt.close()
 
 
     #Make plots for all properties
@@ -144,6 +156,29 @@ def selected_plots(path1,
     make_graphs_for_prop('total_angle_distortion',
         'Total angle distortion',
         produce_scatter=produce_scatter)
+    make_graphs_for_prop('max_area_distortion',
+        'Max area distortion',
+        produce_scatter=produce_scatter)
+    make_graphs_for_prop('total_area_distortion',
+        'Total area distortion',
+        produce_scatter=produce_scatter)
+    make_graphs_for_prop('min_singular_value',
+        'Min. singular value',
+        produce_scatter=produce_scatter)
+    make_graphs_for_prop('max_singular_value',
+        'Max. singular value',
+        produce_scatter=produce_scatter)
+    make_graphs_for_prop('resolution',
+        'Pixel resolution needed for display',
+        produce_scatter=produce_scatter)
+    make_graphs_for_prop('artist_area_match',
+        'Matching the artist\'s area distortion',
+        produce_scatter=produce_scatter,
+        plot_data2=False)
+    make_graphs_for_prop('artist_angle_match',
+        'Matching the artist\'s angle distortion',
+        produce_scatter=produce_scatter,
+        plot_data2=False)
 
 
 
@@ -175,103 +210,7 @@ def selected_plots(path1,
     # data.artist_area_match = []
     # data.artist_angle_match = []
 
-
-
-#Percent histogram with special zero bin
-def percent_hist(data1,
-    name1,
-    data2=None,
-    name2=None,
-    title='',
-    comment='',
-    zero_bin=True,
-    palette = 'Pastel1',):
-
-    assert all(x==None or x>=0 for x in data1)
-    assert data2==None or all(x==None or x>=0 for x in data2)
-
-    nbins = 11
-    rnbins = nbins - (zero_bin==True)
-
-    c = 1e-8
-    def handle_extremes(data):
-        if zero_bin:
-            lo = [-1./nbins for x in data if x<c]
-            hi = [x for x in data if x>=c]
-        else:
-            lo = []
-            hi = data
-        if len(lo)==0:
-            lo = pd.Series([],dtype=pd.Float64Dtype())
-        if len(hi)==0:
-            hi = pd.Series([],dtype=pd.Float64Dtype()) 
-        return lo,hi
-    def remove_nones(data):
-        return [1. if x==None else x for x in data]
-    def preproc(data):
-        return handle_extremes(remove_nones(data))
-
-    to_plot1_lo,to_plot1 = preproc(data1)
-    draw_zero_bin = zero_bin
-    if data2 == None:
-        to_plot_lo = (to_plot1_lo)
-        if len(to_plot1_lo)==0:
-            draw_zero_bin = False
-        to_plot = (to_plot1)
-        names = [name1]
-        colors = plt.cm.get_cmap(palette).colors[0]
-    else:
-        to_plot2_lo,to_plot2 = preproc(data2)
-        if len(to_plot1_lo)==0 and len(to_plot2_lo)==0:
-            draw_zero_bin = False
-        to_plot_lo = (to_plot1_lo, to_plot2_lo)
-        to_plot = (to_plot1, to_plot2)
-        names = [name1,name2]
-        colors = (plt.cm.get_cmap(palette).colors[0], plt.cm.get_cmap(palette).colors[1])
-    plt.figure(figsize=(10,4), tight_layout=True)
-    axis = plt.gca()
-    axis.hist(to_plot,
-        bins=rnbins,
-        rwidth=0.75,
-        label=names,
-        color=colors)
-    axis.legend()
-
-    #Deal with labels
-    axis.set(title=title,
-        yscale='log',
-        xlabel=comment,
-        ylabel='count (log scale)')
-
-    if draw_zero_bin:
-        #Zero bin
-        axis.hist(to_plot_lo,
-            bins=1,
-            rwidth=0.75/(nbins-1),
-            label=names,
-            color=colors)
-
-        #Draw dotted line separating left and right bins
-        axis.plot([-0.3/nbins,-0.3/nbins], [axis.get_ylim()[0],1.2*axis.get_ylim()[1]],
-            linestyle='dashed',
-            dashes=(10,5),
-            linewidth=0.5,
-            color=(0.2,0.2,0.2))
-
-    if draw_zero_bin:
-        ticks = [-1./nbins, 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.]
-        ticklabels = ['0%', '>0%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', '100%']
-        axis.margins(y=0)
-    else:
-        ticks = [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.]
-        ticklabels = ['0%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', '100%']
-        axis.margins(y=0.1)
-    axis.set_xticks(ticks,ticklabels)
-    sb.move_legend(axis, "upper center")
-
-    return axis
-
-#Histogram with zero and inf bins
+# Histogram with data
 def hist(data1,
     name1,
     data2=None,
@@ -281,149 +220,191 @@ def hist(data1,
     comment='',
     zero_bin=True,
     inf_bin=True,
-    palette = 'Pastel1'):
+    logx=False,
+    logy=True,
+    percentx=False,
+    palette='Pastel1'):
+    
+    bar_width = 0.4
+    zero_cutoff = 1e-8
+    smallestlognum = zero_cutoff
+    if percentx:
+        inf_cutoff = 1.
+    else:
+        inf_cutoff = 1e18
 
     assert all(x==None or x>=0 for x in data1)
     assert data2==None or all(x==None or x>=0 for x in data2)
     assert nbins>=3
     rnbins = nbins - (zero_bin==True) - (inf_bin==True)
 
-    c = 1e-8
-    d = 1e2
-    def non_none_max(data):
-        m = 1.
-        for x in data:
-            if x != None:
-                if math.isfinite(x):
-                    if x>m:
-                        m = x
-        return min(m,d)
-    cmax = non_none_max(data1) if data2==None else max(non_none_max(data1),non_none_max(data2))
-    zero_tick = - 1.5*cmax/nbins
-    inf_tick = cmax*(1. + 1.5/nbins)
+    def preprocess_zeros_infs(data):
+        xn = [math.inf if x==None else x for x in data]
 
-    def handle_extremes(data):
-        if zero_bin:
-            lo = [zero_tick for x in data if x<c]
-            if inf_bin:
-                mid = [x for x in data if (x>=c and x<d)]
-                hi = [inf_tick for x in data if x==d]
-            else:
-                mid = [x for x in data if x>=c]
-                hi = []
+        zeros = [zero_cutoff for x in xn if x<=zero_cutoff]
+        mids = [x for x in xn if x>zero_cutoff and x<=inf_cutoff]
+        infs = [inf_cutoff for x in xn if x>inf_cutoff]
+
+        if not zero_bin:
+            mids = zeros + mids
+            zeros = None
+        if not inf_bin:
+            mids = mids + infs
+            infs = None
+
+        return zeros,mids,infs
+    def handle_logheights(bins):
+        if logx:
+            return [smallestlognum if x<smallestlognum else x for x in bins]
         else:
-            lo = []
-            if inf_bin:
-                mid = [x for x in data if x<d]
-                hi = [inf_tick for x in data if x==d]
-            else:
-                mid = data
-                hi = []
-        if len(lo)==0:
-            lo = pd.Series([],dtype=pd.Float64Dtype()) 
-        if len(mid)==0:
-            mid = pd.Series([],dtype=pd.Float64Dtype()) 
-        if len(hi)==0:
-            hi = pd.Series([],dtype=pd.Float64Dtype()) 
-        return lo,mid,hi
-    def remove_nones_and_clip(data):
-        return [d if x==None or x>d else x for x in data]
-    def preproc(data):
-        return handle_extremes(remove_nones_and_clip(data))
+            return bins
 
-    to_plot1_lo,to_plot1,to_plot1_hi = preproc(data1)
-    draw_zero_bin = zero_bin
-    draw_inf_bin = inf_bin
-    if data2 == None:
-        to_plot_lo = [to_plot1_lo]
-        if len(to_plot1_lo)==0:
-            draw_zero_bin = False
-        if len(to_plot1_hi)==0:
-            draw_inf_bin = False
-        to_plot = [to_plot1]
-        to_plot_hi = [to_plot1_hi]
-        names = [name1]
-        colors = plt.cm.get_cmap(palette).colors[0]
-    else:
-        to_plot2_lo,to_plot2,to_plot2_hi = preproc(data2)
-        if len(to_plot1_lo)==0 and len(to_plot2_lo)==0:
-            draw_zero_bin = False
-        if len(to_plot1_hi)==0 and len(to_plot2_hi)==0:
-            draw_inf_bin = False
-        to_plot_lo = [to_plot1_lo, to_plot2_lo]
-        to_plot = [to_plot1, to_plot2]
-        to_plot_hi = [to_plot1_hi, to_plot2_hi]
-        names = [name1,name2]
-        colors = (plt.cm.get_cmap(palette).colors[0], plt.cm.get_cmap(palette).colors[1])
+    #Find out which bins to plot
+    zeros1,mids1,infs1 = preprocess_zeros_infs(data1)
+    plotmax = max(mids1) if len(mids1)>0 else 2*zero_cutoff
+    if data2!=None:
+        zeros2,mids2,infs2 = preprocess_zeros_infs(data2)
+        plotmax = max(plotmax,max(mids2)) if len(mids2)>0 else plotmax
 
-    plt.figure(figsize=(10,4), tight_layout=False)
+
+    labelcoords = []
+    labeltexts = []
+    plt.figure(figsize=(10,4), tight_layout=True)
     axis = plt.gca()
-    axis.hist(to_plot,
-        bins=rnbins,
-        rwidth=0.75,
-        label=names,
-        color=colors)
-    axis.legend()
 
     #Zero bin
-    if draw_zero_bin:
-        axis.hist(to_plot_lo,
-            bins=1,
-            rwidth=0.75/(nbins-1-(draw_inf_bin)),
-            label=names,
-            color=colors)
+    zerooffset = -0.5
+    if zero_bin:
+        if data2==None:
+            zerobins1 = [zerooffset]
+            zeroheights1 = handle_logheights([len(zeros1)])
+        else:
+            zerobins1 = [zerooffset - bar_width/2]
+            zeroheights1 = handle_logheights([len(zeros1)])
+            zerobins2 = [zerooffset + bar_width/2]
+            zeroheights2 = handle_logheights([len(zeros2)])
 
-    #Inf bin
-    if draw_inf_bin:
-        axis.hist(to_plot_hi,
-            bins=1,
-            width=0.75/(nbins-1-(draw_zero_bin)),
-            label=names,
-            color=colors)
+        labelcoords.append(zerooffset)
+        labeltexts.append("0%" if percentx else "0")
+
+        axis.bar(zerobins1,
+            zeroheights1,
+            color=plt.cm.get_cmap(palette).colors[0],
+            width=bar_width)
+        if data2!=None:
+            axis.bar(zerobins2,
+                zeroheights2,
+                color=plt.cm.get_cmap(palette).colors[1],
+                width=bar_width)
+
+    #Normal bins
+    if data2==None:
+        bins1 = [x for x in range(1,rnbins+1)]
+        if logx:
+            histbins = np.logspace(np.log10(zero_cutoff),
+                np.log10(inf_cutoff),
+                num=rnbins+1,
+                endpoint=True)
+        else:
+            histbins = np.linspace(zero_cutoff,
+                inf_cutoff,
+                num=rnbins+1,
+                endpoint=True)
+        hist1,edges1 = np.histogram(mids1, bins=histbins)
+        heights1 = handle_logheights([x for x in hist1])
+    else:
+        bins1 = [x - bar_width/2 for x in range(1,rnbins+1)]
+        bins2 = [x + bar_width/2 for x in range(1,rnbins+1)]
+        if logx:
+            histbins = np.logspace(np.log10(zero_cutoff),
+                np.log10(plotmax),
+                num=rnbins+1,
+                endpoint=True)
+        else:
+            histbins = np.linspace(zero_cutoff,
+                plotmax,
+                num=rnbins+1,
+                endpoint=True)
+        hist1,edges1 = np.histogram(mids1, bins=histbins)
+        heights1 = handle_logheights([x for x in hist1])
+        hist2,edges2 = np.histogram(mids2, bins=histbins)
+        heights2 = handle_logheights([x for x in hist2])
+        assert np.linalg.norm(edges1 - edges2) < 1e-8
+    labelcoords += [x for x in np.linspace(0.5, rnbins+0.5, num=rnbins+1)]
+    if percentx:
+        if logx or plotmax<0.05:
+            labeltexts += [">0%" if zero_bin else "0%"] + ["%.1e%%"%(x*100.) for x in edges1[1:]]
+        else:
+            labeltexts += [">0%" if zero_bin else "0%"] + ["{0:.0%}".format(x) for x in edges1[1:]]
+    else:
+        labeltexts += [">0" if zero_bin else "0"] + ["%.1e"%x for x in edges1[1:]]
+
+    bar1 = axis.bar(bins1,
+        heights1,
+        color=plt.cm.get_cmap(palette).colors[0],
+        width=bar_width)
+    if data2!=None:
+        bar2 = axis.bar(bins2,
+            heights2,
+            color=plt.cm.get_cmap(palette).colors[1],
+            width=bar_width)
+
+    #Infinity bins
+    infoffset = rnbins + 1.5
+    if inf_bin:
+        if data2==None:
+            infbins1 = [infoffset]
+            infheights1 = handle_logheights([len(infs1)])
+        else:
+            infbins1 = [infoffset - bar_width/2]
+            infheights1 = handle_logheights([len(infs1)])
+            infbins2 = [infoffset + bar_width/2]
+            infheights2 = handle_logheights([len(infs2)])
+
+        labelcoords.append(infoffset)
+        labeltexts.append("∞")
+
+        axis.bar(infbins1,
+            infheights1,
+            color=plt.cm.get_cmap(palette).colors[0],
+            width=bar_width)
+        if data2!=None:
+            axis.bar(infbins2,
+                infheights2,
+                color=plt.cm.get_cmap(palette).colors[1],
+                width=bar_width)
+
+    #Legend
+    if data2==None:
+        axis.legend([bar1],[name1], loc='upper center')
+    else:
+        axis.legend([bar1,bar2],[name1,name2], loc='upper center')
+
+    #Draw dotted lines
+    axlo = axis.get_ylim()[0]
+    axhi = axis.get_ylim()[1]
+    if zero_bin:
+        axis.plot([0.5*(zerooffset+1.), 0.5*(zerooffset+1.)], [axlo,1.2*axhi],
+            linestyle='dashed',
+            dashes=(10,5),
+            linewidth=0.5,
+            color=(0.2,0.2,0.2))
+    if inf_bin:
+        axis.plot([0.5*(infoffset+rnbins), 0.5*(infoffset+rnbins)], [axlo,1.2*axhi],
+            linestyle='dashed',
+            dashes=(10,5),
+            linewidth=0.5,
+            color=(0.2,0.2,0.2))
+    if zero_bin or inf_bin:
+        axis.margins(y=0)
 
     #Deal with labels
     axis.set(title=title,
-        yscale='log',
+        xscale='linear',
+        yscale='log' if logy else 'linear',
         xlabel=comment,
-        ylabel='count (log scale)')
-
-    axlo = axis.get_ylim()[0]
-    axhi = axis.get_ylim()[1]
-    #Draw dotted line separating left and middle bins
-    if draw_zero_bin:
-        axis.plot([-0.5/nbins,-0.5/nbins], [axlo,1.2*axhi],
-            linestyle='dashed',
-            dashes=(10,5),
-            linewidth=0.5,
-            color=(0.2,0.2,0.2))
-
-    #Draw dotted line separating middle and right bins
-    if draw_inf_bin:
-        axis.plot([(1.+0.5/nbins)*cmax,(1.+0.5/nbins)*cmax], [axlo,1.2*axhi],
-            linestyle='dashed',
-            dashes=(10,5),
-            linewidth=0.5,
-            color=(0.2,0.2,0.2))
-
-    if draw_zero_bin and not draw_inf_bin:
-        ticks = np.concatenate(([zero_tick], np.linspace(0., cmax, num=rnbins+1, endpoint=True)))
-        ticklabels = ["0"] + ["%.1e"%a for a in np.linspace(c, cmax, num=rnbins+1, endpoint=True)]
-        axis.margins(y=0)
-    elif draw_inf_bin and not draw_zero_bin:
-        ticks = np.concatenate((np.linspace(0., cmax, num=rnbins+1, endpoint=True), [inf_tick]))
-        ticklabels = ["%.1e"%a for a in np.linspace(c, cmax, num=rnbins+1, endpoint=True)] + ["∞"]
-        axis.margins(y=0)
-    elif draw_inf_bin and draw_zero_bin:
-        ticks = np.concatenate(([zero_tick], np.linspace(0., cmax, num=rnbins+1, endpoint=True), [inf_tick]))
-        ticklabels = ["0"] + ["%.1e"%a for a in np.linspace(c, cmax, num=rnbins+1, endpoint=True)] + ["∞"]
-        axis.margins(y=0)
-    else:
-        ticks = np.linspace(0., cmax, num=rnbins+1, endpoint=True)
-        ticklabels = ["%.1e"%a for a in np.linspace(c, cmax, num=rnbins+1, endpoint=True)]
-        axis.margins(y=0.1)
-
-    axis.set_xticks(ticks,ticklabels)
-    sb.move_legend(axis, "upper center")
+        ylabel='count')
+    axis.set_xticks(labelcoords,labeltexts)
 
     return axis
 
@@ -449,7 +430,7 @@ def scatter_comparison(data1,
     base = 10.
 
     def non_none_max(data):
-        m = 0.
+        m = 1.
         for x in data:
             if x != None:
                 if math.isfinite(x):
@@ -469,7 +450,8 @@ def scatter_comparison(data1,
         cmax = non_none_max(data)
         cmin = non_none_min(data)
         if log:
-            inf_tick = base ** (math.log(cmax,base)*(1. + 1./nticks))
+            smallest_tick = max(cmin, smallestlognum)
+            inf_tick = base ** ((math.log(cmax,base)-math.log(smallest_tick,base))/nticks + math.log(cmax,base))
         else:
             inf_tick = cmax*(1. + 1./nticks)
         lo = [x for x in data if x<math.inf]
@@ -562,7 +544,7 @@ def scatter_vs_property(prop,
     name2=None,
     title='',
     nxticks=10,
-    nyticks=10,
+    nyticks=6,
     logx=True,
     logy=True,
     palette = 'Pastel1'):
@@ -576,7 +558,7 @@ def scatter_vs_property(prop,
     base = 10.
 
     def non_none_max(data):
-        m = 0.
+        m = 1.
         for x in data:
             if x != None:
                 if math.isfinite(x):
@@ -592,14 +574,20 @@ def scatter_vs_property(prop,
                         m = x
         return m
     smallestlognum = 1e-16
-    def handle_extremes(data,log,inf_provided=None,relabel_infs=True):
+    def handle_extremes(data,log,nticks,inf_provided=None,relabel_infs=True):
         cmax = non_none_max(data)
         cmin = non_none_min(data)
         if inf_provided==None:
             if log:
-                inf_tick = base ** (math.log(cmax,base)*(1. + 1./nyticks))
+                cmax = non_none_max(data)
+                cmin = non_none_min(data)
+                if log:
+                    smallest_tick = max(cmin, smallestlognum)
+                    inf_tick = base ** ((math.log(cmax,base)-math.log(smallest_tick,base))/nticks + math.log(cmax,base))
+                else:
+                    inf_tick = cmax*(1. + 1./nticks)
             else:
-                inf_tick = cmax*(1. + 1./nyticks)
+                inf_tick = cmax*(1. + 1./nticks)
         else:
             inf_tick = inf_provided
         lo = [x for x in data if x<math.inf]
@@ -620,17 +608,17 @@ def scatter_vs_property(prop,
         return data,cmin,cmax,minlabel,inf_tick
     def remove_nones(data):
         return [math.inf if x==None else x for x in data]
-    def preproc(data,log,inf_provided=None,relabel_infs=True):
-        return handle_extremes(remove_nones(data),log,
+    def preproc(data,log,nticks,inf_provided=None,relabel_infs=True):
+        return handle_extremes(remove_nones(data),log,nticks,
             inf_provided=inf_provided,relabel_infs=relabel_infs)
 
     if data2==None:
-        to_plot1,min1,max1,minlabel1,inf1 = preproc(data1,logx)
+        to_plot1,min1,max1,minlabel1,inf1 = preproc(data1,logx,nxticks)
         global_min,global_minlabel = min1,minlabel1
         global_max,global_inf = max1,inf1
     if data2!=None:
-        to_plot1,min1,max1,minlabel1,inf1 = preproc(data1,logx,relabel_infs=False)
-        to_plot2,min2,max2,minlabel2,inf2 = preproc(data2,logy,relabel_infs=False)
+        to_plot1,min1,max1,minlabel1,inf1 = preproc(data1,logx,nxticks,relabel_infs=False)
+        to_plot2,min2,max2,minlabel2,inf2 = preproc(data2,logy,nyticks,relabel_infs=False)
         if min1<min2:
             global_min,global_minlabel = min1,minlabel1
         else:
@@ -639,8 +627,8 @@ def scatter_vs_property(prop,
             global_max,global_inf = max1,inf1
         else:
             global_max,global_inf = max2,inf2
-        to_plot1,_,_,_,_ = preproc(data1,logx,relabel_infs=True,inf_provided=global_inf)
-        to_plot2,_,_,_,_ = preproc(data2,logy,relabel_infs=True,inf_provided=global_inf)
+        to_plot1,_,_,_,_ = preproc(data1,logx,nxticks,relabel_infs=True,inf_provided=global_inf)
+        to_plot2,_,_,_,_ = preproc(data2,logy,nyticks,relabel_infs=True,inf_provided=global_inf)
 
     max_prop = max(prop)
     min_prop = min(prop)
@@ -648,7 +636,6 @@ def scatter_vs_property(prop,
     plt.figure(figsize=(10,4), tight_layout=True)
     axis = plt.gca()
     if data2==None:
-        print(plt.cm.get_cmap(palette).colors[0])
         axis.scatter(prop,
             to_plot1,
             color=plt.cm.get_cmap(palette).colors[0],
@@ -693,7 +680,7 @@ def scatter_vs_property(prop,
     if logy:
         loglabels = np.logspace(math.log(global_min,base), math.log(global_max,base), num=nyticks-1, endpoint=True, base=base)
         yticks = np.concatenate((loglabels, [global_inf]))
-        yticklabels = ["%.1e"%a for a in yticks[:-1]] + ["∞"]
+        yticklabels = ["%.1e"%global_minlabel] + ["%.1e"%a for a in yticks[1:-1]] + ["∞"]
     else:
         yticks = np.concatenate((np.linspace(0, global_max, num=nyticks-1), [global_inf]))
         yticklabels = ["%.1e"%a for a in np.linspace(0, max2, num=nyticks-1, endpoint=True)] + ["∞"]
@@ -776,7 +763,7 @@ def to_float(val):
         if not math.isfinite(f):
             # For now, no special treatment of inf in plot
             return None
-        return f
+        return max(f,0) #TODO: Remove
     except:
         return None
 def to_int(val):
