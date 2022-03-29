@@ -128,6 +128,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
             singular_values_o, _, _ = get_singular_values(J_o)
             
             percent_flipped = get_flipped(J)
+            percent_flipped = min(percent_flipped, 1 - percent_flipped)
             
 #             overlap_area = get_overlap_area(ftc, uv, singular_values)
             
