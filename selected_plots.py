@@ -535,7 +535,7 @@ def scatter_comparison(data1,
 
     return axis
 
-#Scatter cs property plot
+#Scatter vs property plot
 def scatter_vs_property(prop,
     propname,
     data1,
