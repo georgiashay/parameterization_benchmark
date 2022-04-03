@@ -99,7 +99,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
                                   ("heart_shaped_glasses", 0), ("swiss_cheese", 0), ("drill", 0), \
                                   ("lantern_chandelier", 13), ("vegetable_soup", 0)]
         
-    dataset_subfolder = os.path.join(dataset_folder, cut_choice_folder)
+    dataset_subfolder = os.path.join(dataset_folder, "Artist_UVs", cut_choice_folder)
         
     tag_file = os.path.join(dataset_folder, "dataset_tags.csv")
     tag_df = pd.read_csv(tag_file)
@@ -117,7 +117,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
                "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles", \
                #"Bijectivity Violation Area", 
                "Max Angle Distortion", "Total Angle Distortion", \
-               "Resolution", "Artist Area Match", "Artist Angle Match"]
+               "Resolution", "Artist Area Match", "Artist Angle Match", "Hausdorff Distance"]
     
     if not use_cut_dataset:
         columns += ["UV Cut Boundary Ratio", "Artist Mesh Cut Length Match", "Artist UV Cut Length Match"]
@@ -151,7 +151,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
                 if not os.path.isfile(fpath):
                     print("No parameterization provided for", fname)
                     row = [fname, len(f_o), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                          np.nan, np.nan, np.nan, np.nan, np.nan]
+                          np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
 
                     row_series = pd.Series(row, index=df.columns)
 
@@ -160,20 +160,15 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
 
                 v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
 
-                if (v_i.shape != v_io.shape) or (f.shape != f_o.shape) or (not np.all(np.abs(v_i - v_io) <= 1e-8)):
-                    print("Mesh modified for", fname)
-                    row = [fname, len(f_o), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                          np.nan, np.nan, np.nan, np.nan, np.nan]
-
-                    row_series = pd.Series(row, index=df.columns)
-
-                    df = df.append(row_series, ignore_index=True)
-                    continue
+                mesh_modified=False
+                if (v_i.shape != v_io.shape) or (f.shape != f_o.shape) or \
+                (not np.all(np.abs(v_i - v_io) <= 1e-8)) or (not np.all(f == f_o)):
+                    mesh_modified = True
 
                 if np.any(np.isnan(uv_i)):
                     print("Nan texture coordinates for", fname)
                     row = [fname, len(f), len(v), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                          np.nan, np.nan, np.nan, np.nan, np.nan]
+                          np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
 
                     row_series = pd.Series(row, index=df.columns)
 
@@ -197,14 +192,24 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
                 _, angle_errors_o, _, _ = get_angle_distortion(singular_values_o, mesh_areas_o, v_o, f_o, uv_o, ftc_o)
 
                 resolution = get_resolution(v_i, f, uv_i, ftc)
-                _, _, artist_angle_match = get_artist_angle_match(angle_errors_o, angle_errors, mesh_areas)
-                _, _, artist_area_match = get_artist_area_match(mesh_areas, uv_areas_o, uv_areas)
+                
+                if not mesh_modified:
+                    _, _, artist_angle_match = get_artist_angle_match(angle_errors_o, angle_errors, mesh_areas)
+                    _, _, artist_area_match = get_artist_area_match(mesh_areas, uv_areas_o, uv_areas)
+                else:
+                    artist_angle_match = np.nan
+                    artist_area_match = np.nan
+                    
+                if not mesh_modified:
+                    hausdorff_distance = 0
+                else:
+                    hausdorff_distance = igl.hausdorff(v_io, f_o, v_i, f)
 
                 row = [fname, len(f), len(v), max_area_distortion, total_area_distortion, \
                       min_singular_value, max_singular_value, percent_flipped, \
                       #overlap_area, 
                       max_angle_distortion, total_angle_distortion, \
-                      resolution, artist_area_match, artist_angle_match]
+                      resolution, artist_area_match, artist_angle_match, hausdorff_distance]
 
                 if not use_cut_dataset:
 
@@ -231,7 +236,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
                 print("Exception for", fname)
                 print(e)
                 row = [fname, len(f_o), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                      np.nan, np.nan, np.nan, np.nan, np.nan]
+                      np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
 
                 row_series = pd.Series(row, index=df.columns)
 
