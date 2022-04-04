@@ -1,23 +1,12 @@
 import os
 import igl
 import argparse
+import subprocess
 
-def tutte(f_in, f_out):
-    v, uv, n, f, ftc, fn = igl.read_obj(f_in)
-    f = f.reshape((-1, 3))
-    b = igl.boundary_loop(f)
-    b_uv = igl.map_vertices_to_circle(v, b)
-    v_uv = igl.harmonic_weights(v, f, b, b_uv, 1)
-    
-    with open(f_out, "w") as objfile:
-        for row in v:
-            objfile.write("v\t" + " ".join([str(c) for c in row]) + "\n")
-        for row in v_uv:
-            objfile.write("vt\t" + " ".join([str(c) for c in row]) + "\n")
-        for row in f:
-            objfile.write("f\t" + " ".join([str(i+1) + "/" + str(i+1) for i in row]) + "\n")
+def slim(f_in, f_out, binary):
+    subprocess.run([binary, f_in, f_out], capture_output=True)
 
-def produce_tutte_output(dataset_folder, output_folder):
+def produce_slim_output(dataset_folder, output_folder, binary):
     dataset_files = os.listdir(dataset_folder)
 
     for i, f in enumerate(dataset_files):
@@ -28,21 +17,20 @@ def produce_tutte_output(dataset_folder, output_folder):
             input_name = fpath
             output_name = os.path.join(output_folder, f)
             
-            try:
-                tutte(input_name, output_name)
-            except ValueError as e:
-                print(e)
+            slim(input_name, output_name, binary)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run Tutte on dataset")
+    parser = argparse.ArgumentParser(description="Run SLIM on dataset")
     parser.add_argument("-d", "--dataset-folder", type=str, required=True, dest="dataset_folder")
+    parser.add_argument("-b", "--binary", type=str, required=True, dest="binary")
     parser.add_argument("-o", "--output-folder", type=str, required=True, dest="output_folder")
 
     args = parser.parse_args()
     dataset_folder = os.path.abspath(args.dataset_folder)
     output_folder = os.path.abspath(args.output_folder)
+    binary = args.binary
     
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
     
-    produce_tutte_output(dataset_folder, output_folder)    
+    produce_slim_output(dataset_folder, output_folder, binary)    
