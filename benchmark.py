@@ -7,6 +7,7 @@ import numpy as np
 import scipy
 import igl
 from enum import Enum
+import shutil
 
 from utilities.area_distortion import get_area_distortion
 from utilities.preprocess import preprocess
@@ -83,21 +84,26 @@ def get_dataset_characteristics(dataset_folder):
         
     df.to_csv("mesh_characteristics.csv")
     
-def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_name, tag_choices):
+def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, output_folder, tag_choices):
+    if not os.path.exists(output_folder):
+        os.mkdir(output_folder)
+    else:
+        shutil.rmtree(output_folder)
+        os.mkdir(output_folder)
     
     if use_cut_dataset:
         cut_choice_folder = "Cut"
-        interesting_mesh_names = [("crumpled_developable", 0), ("castle_spiral_staircase", 10), ("140mm_fan_cover", 0), \
-                                  ("bobcat_machine", 30), ("elephant_statue", 0), ("gift", 5), ("moon", 1), \
-                                  ("gas_shock_absorber", 3), ("esme", 0), ("fish", 1), ("human_tree", 40), \
-                                  ("horse_statue", 14), ("desert_rose", 28)]
+        interesting_mesh_names = [("crumpled_developable", 0), ("castle_spiral_staircase", 10), \
+                                  ("140mm_fan_cover", 0), ("bobcat_machine", 30), ("elephant_statue", 0), \
+                                  ("gift", 5), ("moon", 1), ("gas_shock_absorber", 3), ("esme", 0), \
+                                  ("fish", 1), ("human_tree", 40), ("horse_statue", 14), ("desert_rose", 28)]
     else:
         cut_choice_folder = "Uncut"
         interesting_mesh_names = [("crumpled_developable", 0), ("microphone", 19), ("future_motorcycle", 1), \
-                                  ("140mm_fan_cover", 0), ("owl", 2), ("pile_of_sticks_and_logs", 0), ("gift", 0), \
-                                  ("moon", 0), ("gas_shock_absorber", 1), ("fish", 0), ("coronavirus", 0), \
-                                  ("heart_shaped_glasses", 0), ("swiss_cheese", 0), ("drill", 0), \
-                                  ("lantern_chandelier", 13), ("vegetable_soup", 0)]
+                                  ("140mm_fan_cover", 0), ("owl", 2), ("pile_of_sticks_and_logs", 0), \
+                                  ("gift", 0), ("moon", 0), ("gas_shock_absorber", 1), ("fish", 0), \
+                                  ("coronavirus", 0), ("heart_shaped_glasses", 0), ("swiss_cheese", 0), \
+                                  ("drill", 0), ("lantern_chandelier", 13), ("vegetable_soup", 0)]
         
     dataset_subfolder = os.path.join(dataset_folder, "Artist_UVs", cut_choice_folder)
         
@@ -117,7 +123,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
                "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles", \
                #"Bijectivity Violation Area", 
                "Max Angle Distortion", "Total Angle Distortion", \
-               "Resolution", "Artist Area Match", "Artist Angle Match", "Hausdorff Distance"]
+               "Resolution", "Artist Area Match", "Artist Angle Match", "Hausdorff Distance", "Remeshed"]
     
     if not use_cut_dataset:
         columns += ["UV Cut Boundary Ratio", "Artist Mesh Cut Length Match", "Artist UV Cut Length Match"]
@@ -151,7 +157,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
                 if not os.path.isfile(fpath):
                     print("No parameterization provided for", fname)
                     row = [fname, len(f_o), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                          np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+                          np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
 
                     row_series = pd.Series(row, index=df.columns)
 
@@ -168,7 +174,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
                 if np.any(np.isnan(uv_i)):
                     print("Nan texture coordinates for", fname)
                     row = [fname, len(f), len(v), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                          np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+                          np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
 
                     row_series = pd.Series(row, index=df.columns)
 
@@ -209,7 +215,8 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
                       min_singular_value, max_singular_value, percent_flipped, \
                       #overlap_area, 
                       max_angle_distortion, total_angle_distortion, \
-                      resolution, artist_area_match, artist_angle_match, hausdorff_distance]
+                      resolution, artist_area_match, artist_angle_match, hausdorff_distance, \
+                      mesh_modified]
 
                 if not use_cut_dataset:
 
@@ -236,7 +243,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
                 print("Exception for", fname)
                 print(e)
                 row = [fname, len(f_o), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                      np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+                      np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
 
                 row_series = pd.Series(row, index=df.columns)
 
@@ -253,13 +260,13 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_
     interesting_meshes += additional_interesting_meshes
     interesting_mesh_files = [fname for fname, reason in interesting_meshes]
                 
-    df.to_csv(csv_name)
+    df.to_csv(os.path.join(output_folder, "distortion_characteristics.csv"))
     
     tri_df = tri_df[tri_df["Filename"].isin(interesting_mesh_files)]
     for fname, reason in interesting_meshes:
         tri_df.loc[tri_df["Filename"] == fname, "Reason"] = reason
     
-    tri_df.to_csv("triangle_singular_values.csv")
+    tri_df.to_csv(os.path.join(output_folder, "triangle_singular_values.csv"))
 
     
     
@@ -267,7 +274,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run parameterization benchmark")
     parser.add_argument("-d", "--dataset", type=str, required=True, dest="dataset")
     parser.add_argument("-m", "--measure", type=str, required=True, dest="measure")
-    parser.add_argument("-o", "--output", dest="output", default="distortion_characteristics.csv")
+    parser.add_argument("-o", "--output", dest="output_folder", default="benchmark_output")
     parser.add_argument("-u", "--uncut", dest="uncut", action="store_const", const=True, default=False)
     parser.add_argument("--size", dest="size", default="any", type=TagChooser("large", "small"))
     parser.add_argument("--disk", dest="disk", default="any", type=TagChooser("no", "yes"))
@@ -278,7 +285,7 @@ if __name__ == "__main__":
     dataset_folder = os.path.abspath(args.dataset)
     measure_folder = os.path.abspath(args.measure)
     use_cut_dataset = not args.uncut
-    csv_name = os.path.abspath(args.output)
+    output_folder = os.path.abspath(args.output_folder)
     tag_choices = {
         "Disk": args.disk,
         "Closed": args.closed,
@@ -287,4 +294,4 @@ if __name__ == "__main__":
     }
         
 #     get_dataset_characteristics(dataset_folder)
-    get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, csv_name, tag_choices)
+    get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, output_folder, tag_choices)

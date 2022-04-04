@@ -1,12 +1,32 @@
 import numpy as np
 import igl
+import tempfile
 
 def preprocess(fpath):
     """
     Load .obj file at fpath and preprocess to scale mesh and UV area to 1.0
     """
-    v_i, uv_i, n, f, ftc, fn = igl.read_obj(fpath)
-            
+    try:
+        v_i, uv_i, n, f, ftc, fn = igl.read_obj(fpath)
+    except ValueError:
+        new_f = ""
+        with open(fpath) as f:
+            for line in f:
+                if line.startswith("f "):
+                    verts = line.strip().split(" ")[1:]
+                    if len(verts) == 3:
+                        new_f += line
+                    else:
+                        for i in range(len(verts) - 2):
+                            new_face = "f " + verts[0] + " " + verts[i+1] + " " + verts[i+2] + "\n"
+                            new_f += new_face            
+                else:
+                    new_f += line
+        tmp = tempfile.NamedTemporaryFile(mode="w+")
+        tmp.write(new_f)
+        v_i, uv_i, n, f, ftc, fn = igl.read_obj(tmp.name)
+        tmp.close()
+                
     f = f.reshape((-1, 3))
     ftc = ftc.reshape((-1, 3))
 

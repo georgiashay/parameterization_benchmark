@@ -11,17 +11,168 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 from types import SimpleNamespace
+import argparse
+import shutil
+from fpdf import FPDF
 
 
-def selected_plots(path1,
-    path2=None,
+def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder):
+    is_comparison = (data2 is not None)
+    plot_folder = os.path.join(output_folder, "plots")
+    
+    pdf = FPDF(orientation="P", unit="pt", format="letter")
+    pdf.add_page()
+    
+    font_dir = os.path.join(os.path.abspath(''), 'utilities', 'assets', 'fonts')
+    pdf.add_font('Libertine', '', os.path.join(font_dir, "LinLibertine_Rah.ttf"), uni=True)
+    pdf.set_font('Libertine','', 24)
+
+    pdf.set_title("Benchmark Report")
+    pdf.set_x(0)
+    pdf.set_y(24)
+    pdf.write(24, "Benchmark Report")
+    pdf.set_x(0)
+    pdf.set_y(48)
+    pdf.set_font_size(18)
+    if is_comparison:
+        pdf.write(18, name1 + " vs " + name2)
+    else:
+        pdf.write(18, name1)
+        
+    def print_stats(data):
+        pdf.set_x(0)
+        pdf.set_y(80)
+        pdf.set_font_size(15)
+        pdf.write(15, "Statistics")
+
+        pdf.set_x(0)
+        pdf.set_y(100)
+        pdf.set_font_size(9)
+        
+        def without_nans(arr):
+            return arr[np.where(np.logical_not(np.isnan(arr)))]
+
+        max_area_distortion = np.array(data.max_area_distortion).astype(float)
+        max_area_distortion = without_nans(max_area_distortion)
+        avg_non_inf_max_area_distortion = np.mean(max_area_distortion[np.where(np.logical_not(np.isinf(max_area_distortion)))])
+
+        max_angle_distortion = np.array(data.max_angle_distortion).astype(float)
+        max_angle_distortion = without_nans(max_angle_distortion)
+        avg_non_inf_max_angle_distortion = np.mean(max_angle_distortion[np.where(np.logical_not(np.isinf(max_angle_distortion)))])
+        
+        total_area_distortion = np.array(data.total_area_distortion).astype(float)
+        total_area_distortion = without_nans(total_area_distortion)
+        
+        total_angle_distortion = np.array(data.total_angle_distortion).astype(float)
+        total_angle_distortion = without_nans(total_angle_distortion)
+        
+        percent_flipped = np.array(data.percentage_flipped_triangles).astype(float)
+        percent_flipped = without_nans(percent_flipped)
+        
+        artist_angle_match = np.array(data.artist_angle_match).astype(float)
+        artist_angle_match = without_nans(artist_angle_match)
+                
+        artist_area_match = np.array(data.artist_area_match).astype(float)
+        artist_area_match = without_nans(artist_area_match)
+        
+        hausdorff_distance = np.array(data.hausdorff_distance).astype(float)
+        hausdorff_distance = without_nans(hausdorff_distance)
+        
+        stats1 = [
+            ("Avg Non-Inf Max Area Distortion", avg_non_inf_max_area_distortion),
+            ("Avg Total Area Distortion", np.mean(total_area_distortion)),
+            ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
+            ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
+            ("Avg Total Angle Distortion", np.mean(total_angle_distortion)),
+            ("Avg Artist Area Match", np.mean(artist_area_match)),
+            ("Avg Artist Angle Match", np.mean(artist_angle_match)),
+            ("Avg Hausdorff Distance", np.mean(hausdorff_distance))
+        ]
+        
+        def n_sig_figs(x, n):
+            if x == 0:
+                return 0
+            
+            magnitude = int(math.floor(math.log10(abs(x))))
+            return round(x, -magnitude + n - 1)
+                    
+        pdf.set_x(0)
+        pdf.set_y(100)
+        pdf.set_font_size(9)
+        pdf.write(9, "\n".join([stat[0] for stat in stats1]))
+        pdf.set_left_margin(pdf.l_margin + 140)
+        pdf.set_x(0)
+        pdf.set_y(100)
+        pdf.write(9, "\n".join([str(n_sig_figs(stat[1], 6)) for stat in stats1]))
+        
+    print_stats(data1)
+    
+    if is_comparison:
+        pdf.set_left_margin(306)
+        print_stats(data2)
+        
+    pdf.set_left_margin(28.35)
+    
+    pdf.image(os.path.join(plot_folder, "percentage_flipped.png"), \
+              x=28.35, y=200, w=555.3, h = 222.12, type = '', link = '')
+    
+    if not is_comparison:
+        pdf.image(os.path.join(plot_folder, "resolution_scatter.png"), \
+                  x=28.35, y=425, w=555.3, h = 222.12, type = '', link = '')
+    else:
+        pdf.image(os.path.join(plot_folder, "resolution_scatter_comp.png"), \
+                  x=28.35, y=425, w=555.3, h = 222.12, type = '', link = '')       
+    
+    pdf.add_page()
+    
+    if not is_comparison:
+        pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+        pdf.image(os.path.join(plot_folder, "total_angle_distortion_scatter.png"), \
+                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        
+        pdf.add_page()
+        pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+        pdf.image(os.path.join(plot_folder, "total_area_distortion_scatter.png"), \
+                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        
+        pdf.add_page()
+        pdf.image(os.path.join(plot_folder, "artist_angle_match_scatter.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+        pdf.image(os.path.join(plot_folder, "artist_area_match_scatter.png"), \
+                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+    else:
+        pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+        pdf.image(os.path.join(plot_folder, "total_angle_distortion_scatter_comp.png"), \
+                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        
+        pdf.add_page()
+        pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter_comp.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+        pdf.image(os.path.join(plot_folder, "total_area_distortion_scatter_comp.png"), \
+                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        
+        pdf.add_page()
+        pdf.image(os.path.join(plot_folder, "artist_angle_match_scatter_comp.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+        pdf.image(os.path.join(plot_folder, "artist_area_match_scatter_comp.png"), \
+                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+    
+    pdf.output(os.path.join(output_folder, "benchmark_report.pdf"))
+    
+
+def selected_plots(folder1,
+    folder2=None,
     name1='dataset 1',
     name2='dataset 2',
     produce_scatter=True,
     out_dir='.'):
+    
     #Read in the CSV files to create a namespace
-    data1 = read_csv(path1)
-    data2 = None if path2==None else read_csv(path2)
+    data1 = read_csv(os.path.join(folder1, "distortion_characteristics.csv"))
+    data2 = None if folder2==None else read_csv(os.path.join(folder2, "distortion_characteristics.csv"))
     if data2 != None:
         assert data1.object_id == data2.object_id
         # assert data1.nfaces == data2.nfaces
@@ -61,7 +212,7 @@ def selected_plots(path1,
             title='Percentage of flipped triangles',
             comment='(reporting smaller of flipped and 100%-flipped, failed parametrizations are ∞)',
             percentx=True)
-    percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
+    percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.png')
     plt.savefig(percentage_flipped_path)
     plt.close()
 
@@ -95,27 +246,27 @@ def selected_plots(path1,
         if data2==None:
             plot_2 = False
 
-        if plot_2:
-            axis = hist(getattr(data1, prop),
-                name1,
-                getattr(data2, prop),
-                name2,
-                title=title,
-                comment='(failed parametrizations are ∞)',
-                logx=True,
-                zero_bin=False,
-                inf_bin=True)
-        else:
-            axis = hist(getattr(data1, prop),
-                name1,
-                title=title,
-                comment='(failed parametrizations are ∞)',
-                logx=True,
-                zero_bin=False,
-                inf_bin=True)
-        percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
-        plt.savefig(percentage_flipped_path)
-        plt.close()
+#         if plot_2:
+#             axis = hist(getattr(data1, prop),
+#                 name1,
+#                 getattr(data2, prop),
+#                 name2,
+#                 title=title,
+#                 comment='(failed parametrizations are ∞)',
+#                 logx=True,
+#                 zero_bin=False,
+#                 inf_bin=True)
+#         else:
+#             axis = hist(getattr(data1, prop),
+#                 name1,
+#                 title=title,
+#                 comment='(failed parametrizations are ∞)',
+#                 logx=True,
+#                 zero_bin=False,
+#                 inf_bin=True)
+#         percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
+#         plt.savefig(percentage_flipped_path)
+#         plt.close()
 
         if produce_scatter:
             if plot_2:
@@ -126,27 +277,27 @@ def selected_plots(path1,
                     huedata=data1.nfaces,
                     huename="#faces",
                     title=title)
-                scatter_comp_path = os.path.join(out_dir, f'{prop}_scatter_comp.pdf')
+                scatter_comp_path = os.path.join(out_dir, f'{prop}_scatter_comp.png')
                 plt.savefig(scatter_comp_path)
                 plt.close()
 
-            # if not plot_2:
-            #     axis = scatter_vs_property(data1.nfaces,
-            #         "#faces",
-            #         getattr(data1, prop),
-            #         name1,
-            #         title=title)
-            # else:
-            #     axis = scatter_vs_property(data1.nfaces,
-            #         "#faces",
-            #         getattr(data1, prop),
-            #         name1,
-            #         getattr(data2, prop),
-            #         name2,
-            #         title=title)
-            # scatter_path = os.path.join(out_dir, f'{prop}_scatter.pdf')
-            # plt.savefig(scatter_path)
-            # plt.close()
+            if not plot_2:
+                axis = scatter_vs_property(data1.nfaces,
+                    "#faces",
+                    getattr(data1, prop),
+                    name1,
+                    title=title)
+            else:
+                axis = scatter_vs_property(data1.nfaces,
+                    "#faces",
+                    getattr(data1, prop),
+                    name1,
+                    getattr(data2, prop),
+                    name2,
+                    title=title)
+            scatter_path = os.path.join(out_dir, f'{prop}_scatter.png')
+            plt.savefig(scatter_path)
+            plt.close()
 
 
     #Make plots for all properties
@@ -173,13 +324,12 @@ def selected_plots(path1,
         produce_scatter=produce_scatter)
     make_graphs_for_prop('artist_area_match',
         'Matching the artist\'s area distortion',
-        produce_scatter=produce_scatter,
-        plot_data2=False)
+        produce_scatter=produce_scatter)
     make_graphs_for_prop('artist_angle_match',
         'Matching the artist\'s angle distortion',
-        produce_scatter=produce_scatter,
-        plot_data2=False)
-
+        produce_scatter=produce_scatter)
+    
+    return data1, data2
 
 
 
@@ -404,7 +554,7 @@ def hist(data1,
         yscale='log' if logy else 'linear',
         xlabel=comment,
         ylabel='count')
-    axis.set_xticks(labelcoords,labeltexts)
+    axis.set_xticks(labelcoords, labels=labeltexts)
 
     return axis
 
@@ -512,7 +662,7 @@ def scatter_comparison(data1,
         xticks = np.concatenate((loglabels, [inf1]))
         xticklabels = ["%.1e"%minlabel1] + ["%.1e"%a for a in loglabels[1:]] + ["∞"]
     else:
-        xticks = np.concatenate((np.linspace(0, max1, num=nticks-1), [inf1]))
+        xticks = np.concatenate((np.linspace(0,  max1, num=nticks-1), [inf1]))
         xticklabels = ["%.1e"%a for a in np.linspace(0, max1, num=nticks-1, endpoint=True)] + ["∞"]
     if logy:
         loglabels = np.logspace(math.log(min2,base), math.log(max2,base), num=nticks-1, endpoint=True, base=base)
@@ -521,8 +671,8 @@ def scatter_comparison(data1,
     else:
         yticks = np.concatenate((np.linspace(0, max2, num=nticks-1), [inf2]))
         yticklabels = ["%.1e"%a for a in np.linspace(0, max2, num=nticks-1, endpoint=True)] + ["∞"]
-    axis.set_xticks(xticks,xticklabels)
-    axis.set_yticks(yticks,yticklabels)
+    axis.set_xticks(xticks,labels=xticklabels)
+    axis.set_yticks(yticks,labels=yticklabels)
     axis.margins(x=0.005, y=0.01)
 
     axis.plot([min1 if logx else 0., inf1], [min2 if logy else 0., inf2],
@@ -684,8 +834,8 @@ def scatter_vs_property(prop,
     else:
         yticks = np.concatenate((np.linspace(0, global_max, num=nyticks-1), [global_inf]))
         yticklabels = ["%.1e"%a for a in np.linspace(0, max2, num=nyticks-1, endpoint=True)] + ["∞"]
-    axis.set_xticks(xticks,xticklabels)
-    axis.set_yticks(yticks,yticklabels)
+    axis.set_xticks(xticks,labels=xticklabels)
+    axis.set_yticks(yticks,labels=yticklabels)
     axis.margins(x=0.005, y=0.01)
 
     return axis
@@ -704,12 +854,13 @@ def read_csv(path):
     data.min_singular_value = []
     data.max_singular_value = []
     data.percentage_flipped_triangles = []
-    data.bijectivity_violation_area = []
+#     data.bijectivity_violation_area = []
     data.max_angle_distortion = []
     data.total_angle_distortion = []
     data.resolution = []
     data.artist_area_match = []
     data.artist_angle_match = []
+    data.hausdorff_distance = []
 
     read_first_row = False
     with open(path, newline='') as parsing:
@@ -727,12 +878,13 @@ def read_csv(path):
                 assert row[6] == 'Min Singular Value'
                 assert row[7] == 'Max Singular Value'
                 assert row[8] == 'Percentage Flipped Triangles'
-                assert row[9] == 'Bijectivity Violation Area'
-                assert row[10] == 'Max Angle Distortion'
-                assert row[11] == 'Total Angle Distortion'
-                assert row[12] == 'Resolution'
-                assert row[13] == 'Artist Area Match'
-                assert row[14] == 'Artist Angle Match'
+#                 assert row[9] == 'Bijectivity Violation Area'
+                assert row[9] == 'Max Angle Distortion'
+                assert row[10] == 'Total Angle Distortion'
+                assert row[11] == 'Resolution'
+                assert row[12] == 'Artist Area Match'
+                assert row[13] == 'Artist Angle Match'
+                assert row[14] == 'Hausdorff Distance'
             else:
                 #Given the namings above, put everything into the correct array.
                 data.object_id.append(to_int(row[0]))
@@ -744,12 +896,13 @@ def read_csv(path):
                 data.min_singular_value.append(to_float(row[6]))
                 data.max_singular_value.append(to_float(row[7]))
                 data.percentage_flipped_triangles.append(to_float(row[8]))
-                data.bijectivity_violation_area.append(to_float(row[9]))
-                data.max_angle_distortion.append(to_float(row[10]))
-                data.total_angle_distortion.append(to_float(row[11]))
-                data.resolution.append(to_float(row[12]))
-                data.artist_area_match.append(to_float(row[13]))
-                data.artist_angle_match.append(to_float(row[14]))
+#                 data.bijectivity_violation_area.append(to_float(row[9]))
+                data.max_angle_distortion.append(to_float(row[9]))
+                data.total_angle_distortion.append(to_float(row[10]))
+                data.resolution.append(to_float(row[11]))
+                data.artist_area_match.append(to_float(row[12]))
+                data.artist_angle_match.append(to_float(row[13]))
+                data.hausdorff_distance.append(to_float(row[14]))
 
     return data
 
@@ -778,3 +931,50 @@ def to_int(val):
         return None
 
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate report from benchmark")
+    parser.add_argument("-b", "--benchmarks", type=str, required=True, nargs="+", dest="benchmark_folders", metavar="INPUT_FOLDER")
+    parser.add_argument("-n", "--names", type=str, required=True, nargs="+", dest="names", metavar="NAME")
+    parser.add_argument("-s", "--scatter", type=bool, default=True, dest="scatter")
+    parser.add_argument("-o", "--output", type=str, dest="output_folder", default="report_output")
+    
+    args = parser.parse_args()
+    benchmark_folders = args.benchmark_folders
+    if len(benchmark_folders) > 2:
+        raise ValueError("Can only compare two benchmark folders")
+        
+    benchmark_folders = [os.path.abspath(folder) for folder in benchmark_folders]
+    
+    if len(benchmark_folders) == 1:
+        folder1 = benchmark_folders[0]
+        folder2 = None
+    else:
+        folder1, folder2 = benchmark_folders
+    
+    names = args.names
+    if len(names) != len(benchmark_folders):
+        raise ValueError("Must provide same number of benchmark folders and names")
+     
+    if len(names) == 1:
+        name1 = names[0]
+        name2 = None
+    else:
+        name1, name2 = names
+        
+    produce_scatter = args.scatter
+    output_folder = os.path.abspath(args.output_folder)
+    
+    if not os.path.exists(output_folder):
+        os.mkdir(output_folder)
+    else:
+        shutil.rmtree(output_folder)
+        os.mkdir(output_folder)
+        
+    plot_folder = os.path.join(output_folder, "plots")
+    os.mkdir(plot_folder)
+    
+    data1, data2 = selected_plots(folder1=folder1, folder2=folder2, name1=name1, name2=name2, \
+                                  produce_scatter=produce_scatter, out_dir=plot_folder)
+    
+    generate_report(data1=data1, data2=data2, folder1=folder1, folder2=folder2, 
+                    name1=name1, name2=name2, output_folder=output_folder)
