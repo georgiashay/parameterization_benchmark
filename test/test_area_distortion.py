@@ -4,6 +4,7 @@ from ..utilities.preprocess import preprocess
 import os
 import math
 import pytest
+import numpy as np
 
 test_dir = os.path.dirname(os.path.realpath(__file__))
 fixture_dir = os.path.join(test_dir, "fixtures")
@@ -77,4 +78,12 @@ def test_area_distortion_cone_tri():
     assert total_area_distortion == pytest.approx(expected)
     assert max_area_distortion == pytest.approx((area_factor2/sum_area_factors)/0.5 + 0.5/(area_factor2/sum_area_factors) - 2)
                                                  
+def test_angle_distortion_flat_triangle():
+    fpath = os.path.join(fixture_dir, "with_flat.obj")
+    _, _, _, _, _, _, mesh_areas, uv_areas = preprocess(fpath)
+    
+    _, _, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
+        
+    assert max_area_distortion == pytest.approx(np.inf)
+    assert total_area_distortion == pytest.approx(1)
     

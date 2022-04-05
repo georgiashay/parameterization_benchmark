@@ -16,7 +16,12 @@ def get_angles(v, f):
     return angles
 
 def get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc):
-    angle_distortions = singular_values[:, 0]/singular_values[:, 1] + singular_values[:, 1]/singular_values[:, 0]
+    sing1 = singular_values[:, 0]
+    sing2 = singular_values[:, 1]
+        
+    angle_distortions = np.divide(sing1, sing2, out=np.full(sing1.shape, np.inf), where=(sing2 != 0)) + \
+                        np.divide(sing2, sing1, out=np.full(sing2.shape, np.inf), where=(sing1 != 0))
+    
     max_angle_distortion = np.max(angle_distortions) - 2
 
     angles_mesh = get_angles(v, f)
