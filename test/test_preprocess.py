@@ -60,4 +60,11 @@ def test_preprocess_grid_shift():
                                          [3/math.sqrt(8), 2/math.sqrt(8), 0], 
                                          [4/math.sqrt(8), 2/math.sqrt(8), 0]]))
     
+def test_preprocess_no_uv_area():
+    fpath = os.path.join(fixture_dir, "flat_triangle.obj")
+    
+    with pytest.raises(ValueError) as e:
+        preprocess(fpath)
+        
+    assert str(e.value) == "No UV area"
     

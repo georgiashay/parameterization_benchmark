@@ -35,6 +35,9 @@ def preprocess(fpath):
 
     total_mesh_area = np.sum(mesh_areas)
     total_uv_area = np.sum(uv_areas)
+    
+    if total_uv_area < 1e-8:
+        raise ValueError("No UV area")
 
     v = v_i * np.sqrt(1.0/total_mesh_area)
     uv = uv_i * np.sqrt(1.0/total_uv_area)
