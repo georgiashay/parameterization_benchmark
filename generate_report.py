@@ -190,7 +190,7 @@ def selected_plots(folder1,
         data1.nfaces = data2.nfaces
         data1.nvertices = data2.nvertices
 
-    remeshed = any(data1.remeshed) or any(data2.remeshed)
+    remeshed = any(data1.remeshed) if data2==None else (any(data1.remeshed) or any(data2.remeshed))
 
     plt.rc('axes', titlesize=16)
     plt.rc('axes', labelsize=12)
@@ -321,8 +321,10 @@ def selected_plots(folder1,
         data1_hausdorff = [0. if x==None else x for x in data1.hausdorff_distance]
         axis = hist(data1_hausdorff,
             name1,
+            data2_hausdorff,
+            name2,
             title='Hausdorff error introduced by remeshing',
-            comment='This method remeshes the input surface. This plot documents the extent.',
+            comment='One of the methods remeshes the input surface. This plot documents the extent.',
             logx=False,
             inf_bin=False)
         hausdorff_distance_path = os.path.join(out_dir, 'hausdorff_distance.')
@@ -333,11 +335,11 @@ def selected_plots(folder1,
         make_graphs_for_prop('artist_area_match',
             'How much worse is the area distortion compared to the artist?',
             produce_scatter=produce_scatter,
-            plot_data2=False)
+            plot_data2=True)
         make_graphs_for_prop('artist_angle_match',
             'How much worse is the angle distortion compared to the artist?',
             produce_scatter=produce_scatter,
-            plot_data2=False)
+            plot_data2=True)
     
     return data1, data2, remeshed
 
@@ -358,7 +360,7 @@ def hist(data1,
     palette='Pastel1'):
     
     bar_width = 0.4
-    zero_cutoff = 1e-12
+    zero_cutoff = 1e-8
     smallestlognum = zero_cutoff
     if percentx:
         inf_cutoff = 1.
@@ -385,10 +387,16 @@ def hist(data1,
             infs = None
 
         return zeros,mids,infs
+    zeroexists = False
     def handle_logheights(bins):
-        if logx:
-            return [smallestlognum if x<smallestlognum else x for x in bins]
+        if logy:
+            hts = [smallestlognum if x<smallestlognum else x for x in bins]
+            if smallestlognum in hts:
+                zeroexists = True
+            return hts
         else:
+            if 0 in bins:
+                zeroexists = True
             return bins
 
     #Find out which bins to plot
@@ -527,7 +535,9 @@ def hist(data1,
             dashes=(10,5),
             linewidth=0.5,
             color=(0.2,0.2,0.2))
-    if zero_bin or inf_bin:
+    if zeroexists:
+        axis.margins(y=0.)
+    else:
         axis.margins(y=0.02)
 
     #Deal with labels
@@ -577,7 +587,7 @@ def scatter_comparison(data1,
                     if x<m:
                         m = x
         return m
-    smallestlognum = 1e-12
+    smallestlognum = 1e-8
     def handle_extremes(data,log):
         cmax = non_none_max(data)
         cmin = non_none_min(data)
