@@ -13,6 +13,7 @@ import pandas as pd
 from types import SimpleNamespace
 import argparse
 import shutil
+import fpdf
 from fpdf import FPDF
 
 
@@ -126,51 +127,47 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         
     pdf.set_left_margin(28.35)
     
-    pdf.image(os.path.join(plot_folder, "percentage_flipped.pdf"), \
+    pdf.image(os.path.join(plot_folder, "percentage_flipped.png"), \
               x=28.35, y=200, w=555.3, h = 222.12, type = '', link = '')
+
+    #Put all the histograms here
     
-    # if not is_comparison:
-    #     pdf.image(os.path.join(plot_folder, "resolution_scatter.pdf"), \
-    #               x=28.35, y=425, w=555.3, h = 222.12, type = '', link = '')
     if is_comparison:
-        pdf.image(os.path.join(plot_folder, "resolution_scatter_comp.pdf"), \
+        pdf.image(os.path.join(plot_folder, "resolution.png"), \
                   x=28.35, y=425, w=555.3, h = 222.12, type = '', link = '')       
     
     pdf.add_page()
-    
-    # if not is_comparison:
-    #     pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter.pdf"), \
-    #               x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-    #     pdf.image(os.path.join(plot_folder, "average_angle_error_scatter.pdf"), \
-    #               x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
-        
-    #     pdf.add_page()
-    #     pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter.pdf"), \
-    #               x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-    #     pdf.image(os.path.join(plot_folder, "average_area_error_scatter.pdf"), \
-    #               x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
-        
-    #     pdf.add_page()
-    #     pdf.image(os.path.join(plot_folder, "artist_angle_match_scatter.pdf"), \
-    #               x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-    #     pdf.image(os.path.join(plot_folder, "artist_area_match_scatter.pdf"), \
-    #               x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
     if is_comparison:
-        pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.pdf"), \
+        pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.png"), \
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "average_angle_error_scatter_comp.pdf"), \
+        pdf.image(os.path.join(plot_folder, "average_angle_error_scatter_comp.png"), \
                   x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
         
         pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter_comp.pdf"), \
+        pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter_comp.png"), \
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "average_area_error_scatter_comp.pdf"), \
+        pdf.image(os.path.join(plot_folder, "average_area_error_scatter_comp.png"), \
+                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+    else:
+        pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+        pdf.image(os.path.join(plot_folder, "average_angle_error_scatter_comp.png"), \
                   x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
         
         pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "artist_angle_match_scatter_comp.pdf"), \
+        pdf.image(os.path.join(plot_folder, "max_area_distortion.png"), \
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "artist_area_match_scatter_comp.pdf"), \
+        pdf.image(os.path.join(plot_folder, "average_area_error.png"), \
+                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        
+    pdf.add_page()
+    if remeshed:
+        pdf.image(os.path.join(plot_folder, "hausdorff_distance.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+    else:
+        pdf.image(os.path.join(plot_folder, "artist_angle_match.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+        pdf.image(os.path.join(plot_folder, "artist_area_match.png"), \
                   x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
     
     pdf.output(os.path.join(output_folder, "benchmark_report.pdf"))
@@ -227,8 +224,9 @@ def selected_plots(folder1,
             title='Percentage of flipped triangles',
             comment='(reporting smaller of flipped and 100%-flipped, failed parametrizations are ∞)',
             percentx=True)
-    percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
-    plt.savefig(percentage_flipped_path)
+    percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.')
+    plt.savefig(percentage_flipped_path+'pdf')
+    plt.savefig(percentage_flipped_path+'png', dpi=300)
     plt.close()
 
     def make_graphs_for_prop(prop,
@@ -258,8 +256,9 @@ def selected_plots(folder1,
                 logx=True,
                 zero_bin=False,
                 inf_bin=True)
-        hist_path = os.path.join(out_dir, f'{prop}.pdf')
-        plt.savefig(hist_path)
+        hist_path = os.path.join(out_dir, f'{prop}.')
+        plt.savefig(hist_path + 'pdf')
+        plt.savefig(hist_path + 'png', dpi=300)
         plt.close()
 
         if produce_scatter:
@@ -271,8 +270,9 @@ def selected_plots(folder1,
                     huedata=data1.nfaces,
                     huename="#faces",
                     title=title)
-                scatter_comp_path = os.path.join(out_dir, f'{prop}_scatter_comp.pdf')
-                plt.savefig(scatter_comp_path)
+                scatter_comp_path = os.path.join(out_dir, f'{prop}_scatter_comp.')
+                plt.savefig(scatter_comp_path + 'pdf')
+                plt.savefig(scatter_comp_path + 'png', dpi=300)
                 plt.close()
 
             # if not plot_2:
@@ -289,8 +289,9 @@ def selected_plots(folder1,
             #         getattr(data2, prop),
             #         name2,
             #         title=title)
-            # scatter_path = os.path.join(out_dir, f'{prop}_scatter.pdf')
-            # plt.savefig(scatter_path)
+            # scatter_path = os.path.join(out_dir, f'{prop}_scatter.')
+            # plt.savefig(scatter_path + 'pdf')
+            # plt.savefig(scatter_path + 'svg')
             # plt.close()
 
 
@@ -302,7 +303,7 @@ def selected_plots(folder1,
         'Average angle error',
         produce_scatter=produce_scatter)
     make_graphs_for_prop('max_area_distortion',
-        'Max area distortion',
+        'Maximal area distortion',
         produce_scatter=produce_scatter)
     make_graphs_for_prop('average_area_error',
         'Average area error',
@@ -318,33 +319,25 @@ def selected_plots(folder1,
         produce_scatter=produce_scatter)
     if remeshed:
         data1_hausdorff = [0. if x==None else x for x in data1.hausdorff_distance]
-        if data2==None:
-            axis = hist(data1_hausdorff,
-                name1,
-                title='Hausdorff error introduced by remeshing',
-                comment='This method remeshes the input surface. This plot documents the extent.',
-                logx=False,
-                inf_bin=False)
-        else:
-            data2_hausdorff = [0. if x==None else x for x in data2.hausdorff_distance]
-            axis = hist(data1_hausdorff,
-                name1,
-                data2_hausdorff,
-                name2,
-                title='Hausdorff error introduced by remeshing',
-                comment='This method remeshes the input surface. This plot documents the extent.',
-                logx=False,
-                inf_bin=False)
-        hausdorff_distance_path = os.path.join(out_dir, 'hausdorff_distance.pdf')
-        plt.savefig(hausdorff_distance_path)
+        axis = hist(data1_hausdorff,
+            name1,
+            title='Hausdorff error introduced by remeshing',
+            comment='This method remeshes the input surface. This plot documents the extent.',
+            logx=False,
+            inf_bin=False)
+        hausdorff_distance_path = os.path.join(out_dir, 'hausdorff_distance.')
+        plt.savefig(hausdorff_distance_path + 'pdf')
+        plt.savefig(hausdorff_distance_path + 'png', dpi=300)
         plt.close()
     else:
         make_graphs_for_prop('artist_area_match',
-            'Matching the artist\'s area distortion',
-            produce_scatter=produce_scatter)
+            'How much worse is the area distortion compared to the artist?',
+            produce_scatter=produce_scatter,
+            plot_data2=False)
         make_graphs_for_prop('artist_angle_match',
-            'Matching the artist\'s angle distortion',
-            produce_scatter=produce_scatter)
+            'How much worse is the angle distortion compared to the artist?',
+            produce_scatter=produce_scatter,
+            plot_data2=False)
     
     return data1, data2, remeshed
 
@@ -365,7 +358,7 @@ def hist(data1,
     palette='Pastel1'):
     
     bar_width = 0.4
-    zero_cutoff = 1e-8
+    zero_cutoff = 1e-12
     smallestlognum = zero_cutoff
     if percentx:
         inf_cutoff = 1.
@@ -441,12 +434,12 @@ def hist(data1,
         bins1 = [x for x in range(1,rnbins+1)]
         if logx:
             histbins = np.logspace(np.log10(zero_cutoff),
-                np.log10(inf_cutoff),
+                np.log10(plotmax),
                 num=rnbins+1,
                 endpoint=True)
         else:
             histbins = np.linspace(zero_cutoff,
-                inf_cutoff,
+                plotmax,
                 num=rnbins+1,
                 endpoint=True)
         hist1,edges1 = np.histogram(mids1, bins=histbins)
@@ -523,19 +516,19 @@ def hist(data1,
     axlo = axis.get_ylim()[0]
     axhi = axis.get_ylim()[1]
     if zero_bin:
-        axis.plot([0.5*(zerooffset+1.), 0.5*(zerooffset+1.)], [axlo,1.2*axhi],
+        axis.plot([0.5*(zerooffset+1.), 0.5*(zerooffset+1.)], [axlo,max(2.*axlo,1.2*axhi)],
             linestyle='dashed',
             dashes=(10,5),
             linewidth=0.5,
             color=(0.2,0.2,0.2))
     if inf_bin:
-        axis.plot([0.5*(infoffset+rnbins), 0.5*(infoffset+rnbins)], [axlo,1.2*axhi],
+        axis.plot([0.5*(infoffset+rnbins), 0.5*(infoffset+rnbins)], [axlo,max(2.*axlo,1.2*axhi)],
             linestyle='dashed',
             dashes=(10,5),
             linewidth=0.5,
             color=(0.2,0.2,0.2))
     if zero_bin or inf_bin:
-        axis.margins(y=0)
+        axis.margins(y=0.02)
 
     #Deal with labels
     axis.set(title=title,
@@ -584,7 +577,7 @@ def scatter_comparison(data1,
                     if x<m:
                         m = x
         return m
-    smallestlognum = 1e-16
+    smallestlognum = 1e-12
     def handle_extremes(data,log):
         cmax = non_none_max(data)
         cmin = non_none_min(data)
@@ -662,7 +655,7 @@ def scatter_comparison(data1,
         yticklabels = ["%.1e"%a for a in np.linspace(0, max2, num=nticks-1, endpoint=True)] + ["∞"]
     axis.set_xticks(xticks,labels=xticklabels)
     axis.set_yticks(yticks,labels=yticklabels)
-    axis.margins(x=0.005, y=0.01)
+    axis.margins(x=0.005, y=0.02)
 
     axis.plot([min1 if logx else 0., inf1], [min2 if logy else 0., inf2],
         linestyle='dashed',
@@ -670,162 +663,8 @@ def scatter_comparison(data1,
         linewidth=0.5,
         alpha=0.5,
         color=(0.,0.,0.))
-    axis.text(max1, max2, 'x=y     ', horizontalalignment='right', fontstyle='italic')
-
-    return axis
-
-#Scatter vs property plot
-def scatter_vs_property(prop,
-    propname,
-    data1,
-    name1,
-    data2=None,
-    name2=None,
-    title='',
-    nxticks=10,
-    nyticks=6,
-    logx=True,
-    logy=True,
-    palette = 'Pastel1'):
-
-    assert all(x>0 for x in prop)
-    assert len(prop)==len(data1)
-    assert all(x==None or x>=0 for x in data1)
-    if data2 != None:
-        assert len(prop)==len(data1)
-        assert all(x==None or x>=0 for x in data2)
-    base = 10.
-
-    def non_none_max(data):
-        m = 1.
-        for x in data:
-            if x != None:
-                if math.isfinite(x):
-                    if x>m:
-                        m = x
-        return m
-    def non_none_min(data):
-        m = math.inf
-        for x in data:
-            if x != None:
-                if math.isfinite(x):
-                    if x<m:
-                        m = x
-        return m
-    smallestlognum = 1e-16
-    def handle_extremes(data,log,nticks,inf_provided=None,relabel_infs=True):
-        cmax = non_none_max(data)
-        cmin = non_none_min(data)
-        if inf_provided==None:
-            if log:
-                cmax = non_none_max(data)
-                cmin = non_none_min(data)
-                if log:
-                    smallest_tick = max(cmin, smallestlognum)
-                    inf_tick = base ** ((math.log(cmax,base)-math.log(smallest_tick,base))/nticks + math.log(cmax,base))
-                else:
-                    inf_tick = cmax*(1. + 1./nticks)
-            else:
-                inf_tick = cmax*(1. + 1./nticks)
-        else:
-            inf_tick = inf_provided
-        lo = [x for x in data if x<math.inf]
-        if relabel_infs:
-            hi = [inf_tick for x in data if x==math.inf]
-        else:
-            hi = [x for x in data if x==math.inf]
-        data = lo + hi
-        if log:
-            if smallestlognum > cmin:
-                minlabel = 0
-                cmin = smallestlognum
-            else:
-                minlabel = cmin
-            data = [smallestlognum if x<smallestlognum else x for x in data]
-        else:
-            minlabel = None
-        return data,cmin,cmax,minlabel,inf_tick
-    def remove_nones(data):
-        return [math.inf if x==None else x for x in data]
-    def preproc(data,log,nticks,inf_provided=None,relabel_infs=True):
-        return handle_extremes(remove_nones(data),log,nticks,
-            inf_provided=inf_provided,relabel_infs=relabel_infs)
-
-    if data2==None:
-        to_plot1,min1,max1,minlabel1,inf1 = preproc(data1,logx,nxticks)
-        global_min,global_minlabel = min1,minlabel1
-        global_max,global_inf = max1,inf1
-    if data2!=None:
-        to_plot1,min1,max1,minlabel1,inf1 = preproc(data1,logx,nxticks,relabel_infs=False)
-        to_plot2,min2,max2,minlabel2,inf2 = preproc(data2,logy,nyticks,relabel_infs=False)
-        if min1<min2:
-            global_min,global_minlabel = min1,minlabel1
-        else:
-            global_min,global_minlabel = min2,minlabel2
-        if max1>max2:
-            global_max,global_inf = max1,inf1
-        else:
-            global_max,global_inf = max2,inf2
-        to_plot1,_,_,_,_ = preproc(data1,logx,nxticks,relabel_infs=True,inf_provided=global_inf)
-        to_plot2,_,_,_,_ = preproc(data2,logy,nyticks,relabel_infs=True,inf_provided=global_inf)
-
-    max_prop = max(prop)
-    min_prop = min(prop)
-
-    plt.figure(figsize=(10,4), tight_layout=True)
-    axis = plt.gca()
-    if data2==None:
-        axis.scatter(prop,
-            to_plot1,
-            color=plt.cm.get_cmap(palette).colors[0],
-            s=3.)
-        axis.legend(labels=[name1])
-    else:
-        val = np.concatenate((np.concatenate([prop,prop])[:,None],
-            np.concatenate([to_plot1,to_plot2])[:,None],
-            np.concatenate((np.zeros((len(prop),1)), np.ones((len(prop),1))), axis=0)), axis=1)
-        rng = np.random.default_rng()
-        rng.shuffle(val)
-        sc = axis.scatter(val[:,0],
-            val[:,1],
-            c=val[:,2],
-            cmap=matplotlib.colors.LinearSegmentedColormap.from_list(palette, plt.cm.get_cmap(palette).colors[0:2]),
-            s=3.,
-            alpha=0.5)
-        # axis.scatter(prop,
-        #     to_plot1,
-        #     color=plt.cm.get_cmap(palette).colors[0],
-        #     s=3.,
-        #     alpha=0.5)
-        # axis.scatter(prop,
-        #     to_plot2,
-        #     color=plt.cm.get_cmap(palette).colors[1],
-        #     s=3.,
-        #     alpha=0.5)
-        axis.legend(handles=sc.legend_elements()[0], labels=[name1, name2])
-
-    #Deal with labels
-    axis.set(title=title,
-        xscale='log' if logx else 'linear',
-        yscale='log' if logy else 'linear',
-        xlabel=propname,
-        ylabel='')
-    if logx:
-        xticks = np.logspace(math.log(min_prop,base), math.log(max_prop,base), num=nxticks, endpoint=True, base=base)
-        xticklabels = ["%.1e"%a for a in xticks]
-    else:
-        xticks = np.linspace(0, max_prop, num=nxticks)
-        xticklabels = ["%.1e"%a for a in np.linspace(0, max1, num=nticks-1, endpoint=True)]
-    if logy:
-        loglabels = np.logspace(math.log(global_min,base), math.log(global_max,base), num=nyticks-1, endpoint=True, base=base)
-        yticks = np.concatenate((loglabels, [global_inf]))
-        yticklabels = ["%.1e"%global_minlabel] + ["%.1e"%a for a in yticks[1:-1]] + ["∞"]
-    else:
-        yticks = np.concatenate((np.linspace(0, global_max, num=nyticks-1), [global_inf]))
-        yticklabels = ["%.1e"%a for a in np.linspace(0, max2, num=nyticks-1, endpoint=True)] + ["∞"]
-    axis.set_xticks(xticks,labels=xticklabels)
-    axis.set_yticks(yticks,labels=yticklabels)
-    axis.margins(x=0.005, y=0.01)
+    label = axis.text(max1, max2, 'x=y', horizontalalignment='right', fontstyle='italic')
+    label.set_bbox(dict(boxstyle="square,pad=0.2",facecolor=(1.,1.,1.,0.5),edgecolor=(0.,0.,0.,0.5)))
 
     return axis
 
