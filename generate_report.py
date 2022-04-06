@@ -16,7 +16,7 @@ import shutil
 from fpdf import FPDF
 
 
-def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder):
+def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder, remeshed=False):
     is_comparison = (data2 is not None)
     plot_folder = os.path.join(output_folder, "plots")
     
@@ -60,34 +60,47 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder)
         max_angle_distortion = without_nans(max_angle_distortion)
         avg_non_inf_max_angle_distortion = np.mean(max_angle_distortion[np.where(np.logical_not(np.isinf(max_angle_distortion)))])
         
-        total_area_distortion = np.array(data.total_area_distortion).astype(float)
-        total_area_distortion = without_nans(total_area_distortion)
+        average_area_error = np.array(data.average_area_error).astype(float)
+        average_area_error = without_nans(average_area_error)
         
-        total_angle_distortion = np.array(data.total_angle_distortion).astype(float)
-        total_angle_distortion = without_nans(total_angle_distortion)
+        average_angle_error = np.array(data.average_angle_error).astype(float)
+        average_angle_error = without_nans(average_angle_error)
         
-        percent_flipped = np.array(data.percentage_flipped_triangles).astype(float)
+        percent_flipped = 100. * np.array(data.proportion_flipped_triangles).astype(float)
         percent_flipped = without_nans(percent_flipped)
         
-        artist_angle_match = np.array(data.artist_angle_match).astype(float)
-        artist_angle_match = without_nans(artist_angle_match)
-                
-        artist_area_match = np.array(data.artist_area_match).astype(float)
-        artist_area_match = without_nans(artist_area_match)
+        if remeshed:
+            hausdorff_distance = np.array(data.hausdorff_distance).astype(float)
+            hausdorff_distance = without_nans(hausdorff_distance)
+        else:
+            artist_angle_match = np.array(data.artist_angle_match).astype(float)
+            artist_angle_match = without_nans(artist_angle_match)
+                    
+            artist_area_match = np.array(data.artist_area_match).astype(float)
+            artist_area_match = without_nans(artist_area_match)
         
         hausdorff_distance = np.array(data.hausdorff_distance).astype(float)
         hausdorff_distance = without_nans(hausdorff_distance)
         
-        stats1 = [
-            ("Avg Non-Inf Max Area Distortion", avg_non_inf_max_area_distortion),
-            ("Avg Total Area Distortion", np.mean(total_area_distortion)),
-            ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
-            ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
-            ("Avg Total Angle Distortion", np.mean(total_angle_distortion)),
-            ("Avg Artist Area Match", np.mean(artist_area_match)),
-            ("Avg Artist Angle Match", np.mean(artist_angle_match)),
-            ("Avg Hausdorff Distance", np.mean(hausdorff_distance))
-        ]
+        if remeshed:
+            stats1 = [
+                ("Avg Non-Inf Max Area Distortion", avg_non_inf_max_area_distortion),
+                ("Avg Area Error", np.mean(average_area_error)),
+                ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
+                ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
+                ("Avg Angle Error", np.mean(average_angle_error)),
+                ("Avg Hausdorff Distance", np.mean(hausdorff_distance))
+            ]
+        else:
+            stats1 = [
+                ("Avg Non-Inf Max Area Distortion", avg_non_inf_max_area_distortion),
+                ("Avg Area Error", np.mean(average_area_error)),
+                ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
+                ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
+                ("Avg Angle Error", np.mean(average_angle_error)),
+                ("Avg Artist Area Match", np.mean(artist_area_match)),
+                ("Avg Artist Angle Match", np.mean(artist_angle_match))
+            ]
         
         def n_sig_figs(x, n):
             if x == 0:
@@ -113,51 +126,51 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder)
         
     pdf.set_left_margin(28.35)
     
-    pdf.image(os.path.join(plot_folder, "percentage_flipped.png"), \
+    pdf.image(os.path.join(plot_folder, "percentage_flipped.pdf"), \
               x=28.35, y=200, w=555.3, h = 222.12, type = '', link = '')
     
-    if not is_comparison:
-        pdf.image(os.path.join(plot_folder, "resolution_scatter.png"), \
-                  x=28.35, y=425, w=555.3, h = 222.12, type = '', link = '')
-    else:
-        pdf.image(os.path.join(plot_folder, "resolution_scatter_comp.png"), \
+    # if not is_comparison:
+    #     pdf.image(os.path.join(plot_folder, "resolution_scatter.pdf"), \
+    #               x=28.35, y=425, w=555.3, h = 222.12, type = '', link = '')
+    if is_comparison:
+        pdf.image(os.path.join(plot_folder, "resolution_scatter_comp.pdf"), \
                   x=28.35, y=425, w=555.3, h = 222.12, type = '', link = '')       
     
     pdf.add_page()
     
-    if not is_comparison:
-        pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter.png"), \
+    # if not is_comparison:
+    #     pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter.pdf"), \
+    #               x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+    #     pdf.image(os.path.join(plot_folder, "average_angle_error_scatter.pdf"), \
+    #               x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        
+    #     pdf.add_page()
+    #     pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter.pdf"), \
+    #               x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+    #     pdf.image(os.path.join(plot_folder, "average_area_error_scatter.pdf"), \
+    #               x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        
+    #     pdf.add_page()
+    #     pdf.image(os.path.join(plot_folder, "artist_angle_match_scatter.pdf"), \
+    #               x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+    #     pdf.image(os.path.join(plot_folder, "artist_area_match_scatter.pdf"), \
+    #               x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+    if is_comparison:
+        pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.pdf"), \
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "total_angle_distortion_scatter.png"), \
+        pdf.image(os.path.join(plot_folder, "average_angle_error_scatter_comp.pdf"), \
                   x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
         
         pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter.png"), \
+        pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter_comp.pdf"), \
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "total_area_distortion_scatter.png"), \
+        pdf.image(os.path.join(plot_folder, "average_area_error_scatter_comp.pdf"), \
                   x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
         
         pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "artist_angle_match_scatter.png"), \
+        pdf.image(os.path.join(plot_folder, "artist_angle_match_scatter_comp.pdf"), \
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "artist_area_match_scatter.png"), \
-                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
-    else:
-        pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.png"), \
-                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "total_angle_distortion_scatter_comp.png"), \
-                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
-        
-        pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter_comp.png"), \
-                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "total_area_distortion_scatter_comp.png"), \
-                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
-        
-        pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "artist_angle_match_scatter_comp.png"), \
-                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "artist_area_match_scatter_comp.png"), \
+        pdf.image(os.path.join(plot_folder, "artist_area_match_scatter_comp.pdf"), \
                   x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
     
     pdf.output(os.path.join(output_folder, "benchmark_report.pdf"))
@@ -180,6 +193,8 @@ def selected_plots(folder1,
         data1.nfaces = data2.nfaces
         data1.nvertices = data2.nvertices
 
+    remeshed = any(data1.remeshed) or any(data2.remeshed)
+
     plt.rc('axes', titlesize=16)
     plt.rc('axes', labelsize=12)
     plt.rc('xtick', labelsize=12)
@@ -196,7 +211,7 @@ def selected_plots(folder1,
     plt.rc('font', serif='Linux Libertine')
 
     #Percentage flipped triangles histogram
-    data1_flipped = [None if x==None else min(1.-x,x) for x in data1.percentage_flipped_triangles]
+    data1_flipped = [None if x==None else min(1.-x,x) for x in data1.proportion_flipped_triangles]
     if data2==None:
         axis = hist(data1_flipped,
             name1,
@@ -204,7 +219,7 @@ def selected_plots(folder1,
             comment='(reporting smaller of flipped and 100%-flipped, failed parametrizations are ∞)',
             percentx=True)
     else:
-        data2_flipped = [None if x==None else min(1.-x,x) for x in data2.percentage_flipped_triangles]
+        data2_flipped = [None if x==None else min(1.-x,x) for x in data2.proportion_flipped_triangles]
         axis = hist(data1_flipped,
             name1,
             data2_flipped,
@@ -212,30 +227,9 @@ def selected_plots(folder1,
             title='Percentage of flipped triangles',
             comment='(reporting smaller of flipped and 100%-flipped, failed parametrizations are ∞)',
             percentx=True)
-    percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.png')
+    percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
     plt.savefig(percentage_flipped_path)
     plt.close()
-
-    #Bijectivity area violation histogram
-    # if data2==None:
-    #     axis = hist(data1.bijectivity_violation_area,
-    #         name1,
-    #         logx=True,
-    #         title='Overlapping area in UV map',
-    #         comment='(failed parametrizations are ∞)',
-    #         zero_bin=False)
-    # else:
-    #     axis = hist(data1.bijectivity_violation_area,
-    #         name1,
-    #         data2.bijectivity_violation_area,
-    #         name2,
-    #         logx=True,
-    #         title='Overlapping area in UV map',
-    #         comment='(failed parametrizations are ∞)',
-    #         zero_bin=False)
-    # bijectivity_violation_path = os.path.join(out_dir, 'bijectivity_violation.pdf')
-    # plt.savefig(bijectivity_violation_path)
-    # plt.close()
 
     def make_graphs_for_prop(prop,
         title,
@@ -246,27 +240,27 @@ def selected_plots(folder1,
         if data2==None:
             plot_2 = False
 
-#         if plot_2:
-#             axis = hist(getattr(data1, prop),
-#                 name1,
-#                 getattr(data2, prop),
-#                 name2,
-#                 title=title,
-#                 comment='(failed parametrizations are ∞)',
-#                 logx=True,
-#                 zero_bin=False,
-#                 inf_bin=True)
-#         else:
-#             axis = hist(getattr(data1, prop),
-#                 name1,
-#                 title=title,
-#                 comment='(failed parametrizations are ∞)',
-#                 logx=True,
-#                 zero_bin=False,
-#                 inf_bin=True)
-#         percentage_flipped_path = os.path.join(out_dir, 'percentage_flipped.pdf')
-#         plt.savefig(percentage_flipped_path)
-#         plt.close()
+        if plot_2:
+            axis = hist(getattr(data1, prop),
+                name1,
+                getattr(data2, prop),
+                name2,
+                title=title,
+                comment='(failed parametrizations are ∞)',
+                logx=True,
+                zero_bin=False,
+                inf_bin=True)
+        else:
+            axis = hist(getattr(data1, prop),
+                name1,
+                title=title,
+                comment='(failed parametrizations are ∞)',
+                logx=True,
+                zero_bin=False,
+                inf_bin=True)
+        hist_path = os.path.join(out_dir, f'{prop}.pdf')
+        plt.savefig(hist_path)
+        plt.close()
 
         if produce_scatter:
             if plot_2:
@@ -277,41 +271,41 @@ def selected_plots(folder1,
                     huedata=data1.nfaces,
                     huename="#faces",
                     title=title)
-                scatter_comp_path = os.path.join(out_dir, f'{prop}_scatter_comp.png')
+                scatter_comp_path = os.path.join(out_dir, f'{prop}_scatter_comp.pdf')
                 plt.savefig(scatter_comp_path)
                 plt.close()
 
-            if not plot_2:
-                axis = scatter_vs_property(data1.nfaces,
-                    "#faces",
-                    getattr(data1, prop),
-                    name1,
-                    title=title)
-            else:
-                axis = scatter_vs_property(data1.nfaces,
-                    "#faces",
-                    getattr(data1, prop),
-                    name1,
-                    getattr(data2, prop),
-                    name2,
-                    title=title)
-            scatter_path = os.path.join(out_dir, f'{prop}_scatter.png')
-            plt.savefig(scatter_path)
-            plt.close()
+            # if not plot_2:
+            #     axis = scatter_vs_property(data1.nfaces,
+            #         "#faces",
+            #         getattr(data1, prop),
+            #         name1,
+            #         title=title)
+            # else:
+            #     axis = scatter_vs_property(data1.nfaces,
+            #         "#faces",
+            #         getattr(data1, prop),
+            #         name1,
+            #         getattr(data2, prop),
+            #         name2,
+            #         title=title)
+            # scatter_path = os.path.join(out_dir, f'{prop}_scatter.pdf')
+            # plt.savefig(scatter_path)
+            # plt.close()
 
 
     #Make plots for all properties
     make_graphs_for_prop('max_angle_distortion',
         'Maximal angle distortion',
         produce_scatter=produce_scatter)
-    make_graphs_for_prop('total_angle_distortion',
-        'Total angle distortion',
+    make_graphs_for_prop('average_angle_error',
+        'Average angle error',
         produce_scatter=produce_scatter)
     make_graphs_for_prop('max_area_distortion',
         'Max area distortion',
         produce_scatter=produce_scatter)
-    make_graphs_for_prop('total_area_distortion',
-        'Total area distortion',
+    make_graphs_for_prop('average_area_error',
+        'Average area error',
         produce_scatter=produce_scatter)
     make_graphs_for_prop('min_singular_value',
         'Min. singular value',
@@ -322,43 +316,38 @@ def selected_plots(folder1,
     make_graphs_for_prop('resolution',
         'Pixel resolution needed for display',
         produce_scatter=produce_scatter)
-    make_graphs_for_prop('artist_area_match',
-        'Matching the artist\'s area distortion',
-        produce_scatter=produce_scatter)
-    make_graphs_for_prop('artist_angle_match',
-        'Matching the artist\'s angle distortion',
-        produce_scatter=produce_scatter)
+    if remeshed:
+        data1_hausdorff = [0. if x==None else x for x in data1.hausdorff_distance]
+        if data2==None:
+            axis = hist(data1_hausdorff,
+                name1,
+                title='Hausdorff error introduced by remeshing',
+                comment='This method remeshes the input surface. This plot documents the extent.',
+                logx=False,
+                inf_bin=False)
+        else:
+            data2_hausdorff = [0. if x==None else x for x in data2.hausdorff_distance]
+            axis = hist(data1_hausdorff,
+                name1,
+                data2_hausdorff,
+                name2,
+                title='Hausdorff error introduced by remeshing',
+                comment='This method remeshes the input surface. This plot documents the extent.',
+                logx=False,
+                inf_bin=False)
+        hausdorff_distance_path = os.path.join(out_dir, 'hausdorff_distance.pdf')
+        plt.savefig(hausdorff_distance_path)
+        plt.close()
+    else:
+        make_graphs_for_prop('artist_area_match',
+            'Matching the artist\'s area distortion',
+            produce_scatter=produce_scatter)
+        make_graphs_for_prop('artist_angle_match',
+            'Matching the artist\'s angle distortion',
+            produce_scatter=produce_scatter)
     
-    return data1, data2
+    return data1, data2, remeshed
 
-
-
-                # assert row[4] == 'Max Area Distortion'
-                # assert row[6] == 'Min Singular Value'
-                # assert row[7] == 'Max Singular Value'
-                # assert row[8] == 'Percentage Flipped Triangles'
-                # assert row[9] == 'Bijectivity Violation Area'
-                # assert row[11] == 'Total Angle Distortion'
-                # assert row[12] == 'Resolution'
-                # assert row[13] == 'Artist Area Match'
-                # assert row[14] == 'Artist Angle Match'
-
-    # data = SimpleNamespace()
-    # data.object_id = []
-    # data.nfaces = []
-    # data.nvertices = []
-    # data.filename = []
-    # data.max_area_distortion = []
-    # data.total_area_distortion = []
-    # data.min_singular_value = []
-    # data.max_singular_value = []
-    # data.percentage_flipped_triangles = []
-    # data.bijectivity_violation_area = []
-    # data.max_angle_distortion = []
-    # data.total_angle_distortion = []
-    # data.resolution = []
-    # data.artist_area_match = []
-    # data.artist_angle_match = []
 
 # Histogram with data
 def hist(data1,
@@ -850,23 +839,23 @@ def read_csv(path):
     data.nvertices = []
     data.filename = []
     data.max_area_distortion = []
-    data.total_area_distortion = []
+    data.average_area_error = []
     data.min_singular_value = []
     data.max_singular_value = []
-    data.percentage_flipped_triangles = []
-#     data.bijectivity_violation_area = []
+    data.proportion_flipped_triangles = []
     data.max_angle_distortion = []
-    data.total_angle_distortion = []
+    data.average_angle_error = []
     data.resolution = []
     data.artist_area_match = []
     data.artist_angle_match = []
     data.hausdorff_distance = []
+    data.remeshed = []
 
     read_first_row = False
     with open(path, newline='') as parsing:
         reader = csv.reader(parsing)
         for row in reader:
-            assert len(row) == 15
+            assert len(row) == 16
             if not read_first_row:
                 read_first_row = True
                 #Make sure all columns have the expected headers
@@ -874,17 +863,17 @@ def read_csv(path):
                 assert row[2] == 'Faces'
                 assert row[3] == 'Vertices'
                 assert row[4] == 'Max Area Distortion'
-                assert row[5] == 'Total Area Distortion'
+                assert row[5] == 'Average Area Error'
                 assert row[6] == 'Min Singular Value'
                 assert row[7] == 'Max Singular Value'
-                assert row[8] == 'Percentage Flipped Triangles'
-#                 assert row[9] == 'Bijectivity Violation Area'
+                assert row[8] == 'Proportion Flipped Triangles'
                 assert row[9] == 'Max Angle Distortion'
-                assert row[10] == 'Total Angle Distortion'
+                assert row[10] == 'Average Angle Error'
                 assert row[11] == 'Resolution'
                 assert row[12] == 'Artist Area Match'
                 assert row[13] == 'Artist Angle Match'
                 assert row[14] == 'Hausdorff Distance'
+                assert row[15] == 'Remeshed'
             else:
                 #Given the namings above, put everything into the correct array.
                 data.object_id.append(to_int(row[0]))
@@ -892,17 +881,17 @@ def read_csv(path):
                 data.nfaces.append(to_int(row[2]))
                 data.nvertices.append(to_int(row[3]))
                 data.max_area_distortion.append(to_float(row[4]))
-                data.total_area_distortion.append(to_float(row[5]))
+                data.average_area_error.append(to_float(row[5]))
                 data.min_singular_value.append(to_float(row[6]))
                 data.max_singular_value.append(to_float(row[7]))
-                data.percentage_flipped_triangles.append(to_float(row[8]))
-#                 data.bijectivity_violation_area.append(to_float(row[9]))
+                data.proportion_flipped_triangles.append(to_float(row[8]))
                 data.max_angle_distortion.append(to_float(row[9]))
-                data.total_angle_distortion.append(to_float(row[10]))
+                data.average_angle_error.append(to_float(row[10]))
                 data.resolution.append(to_float(row[11]))
                 data.artist_area_match.append(to_float(row[12]))
                 data.artist_angle_match.append(to_float(row[13]))
                 data.hausdorff_distance.append(to_float(row[14]))
+                data.remeshed.append(to_bool(row[15]))
 
     return data
 
@@ -929,6 +918,11 @@ def to_int(val):
         return i
     except:
         return None
+def to_bool(val):
+    if val == 'True':
+        return True
+    else:
+        return False
 
 
 if __name__ == "__main__":
@@ -973,8 +967,8 @@ if __name__ == "__main__":
     plot_folder = os.path.join(output_folder, "plots")
     os.mkdir(plot_folder)
     
-    data1, data2 = selected_plots(folder1=folder1, folder2=folder2, name1=name1, name2=name2, \
+    data1, data2, remeshed = selected_plots(folder1=folder1, folder2=folder2, name1=name1, name2=name2, \
                                   produce_scatter=produce_scatter, out_dir=plot_folder)
     
     generate_report(data1=data1, data2=data2, folder1=folder1, folder2=folder2, 
-                    name1=name1, name2=name2, output_folder=output_folder)
+                    name1=name1, name2=name2, output_folder=output_folder, remeshed=remeshed)
