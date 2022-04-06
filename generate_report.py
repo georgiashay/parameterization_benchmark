@@ -40,11 +40,11 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
     else:
         pdf.write(18, name1)
         
-    def print_stats(data):
+    def print_stats(data,title):
         pdf.set_x(0)
         pdf.set_y(80)
         pdf.set_font_size(15)
-        pdf.write(15, "Statistics")
+        pdf.write(15, "Statistics for " + title)
 
         pdf.set_x(0)
         pdf.set_y(100)
@@ -119,11 +119,11 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         pdf.set_y(100)
         pdf.write(9, "\n".join([str(n_sig_figs(stat[1], 6)) for stat in stats1]))
         
-    print_stats(data1)
+    print_stats(data1,name1)
     
     if is_comparison:
         pdf.set_left_margin(306)
-        print_stats(data2)
+        print_stats(data2,name2)
         
     pdf.set_left_margin(28.35)
     
