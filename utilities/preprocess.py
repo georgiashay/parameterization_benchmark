@@ -29,10 +29,10 @@ def preprocess(fpath):
                 
     f = f.reshape((-1, 3))
     ftc = ftc.reshape((-1, 3))
-
+        
     mesh_areas = np.abs(igl.doublearea(v_i, f)/2.0).reshape((1, -1))
     uv_areas = np.abs(igl.doublearea(uv_i, ftc)/2.0).reshape((1, -1))
-
+       
     total_mesh_area = np.sum(mesh_areas)
     total_uv_area = np.sum(uv_areas)
     

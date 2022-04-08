@@ -16,8 +16,8 @@ def test_regression_jacobian_square_scaled():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    J = get_jacobian(v, f, uv, ftc)
-    J_i = get_jacobian(v_i, f, uv_i, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
+    J_i, _ = get_jacobian(v_i, f, uv_i, ftc)
 
     assert J == pytest.approx(np.array([[[1, 0], [0, 1]], 
                                         [[math.sqrt(2)/2, -math.sqrt(2)/2], [math.sqrt(2)/2, math.sqrt(2)/2]]]))
@@ -30,8 +30,8 @@ def test_regression_jacobian_square_stretched():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    J = get_jacobian(v, f, uv, ftc)
-    J_i = get_jacobian(v_i, f, uv_i, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
+    J_i, _ = get_jacobian(v_i, f, uv_i, ftc)
     
     assert J == pytest.approx(np.array([[[math.sqrt(2), 0], [0, math.sqrt(2)/2]], [[1, -1], [0.5, 0.5]]]))
     assert J_i == pytest.approx(np.array([[[2, 0], [0, 1]], [[math.sqrt(2), -math.sqrt(2)], [math.sqrt(2)/2, math.sqrt(2)/2]]]))
@@ -42,8 +42,8 @@ def test_regression_jacobian_grid_shift():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    J = get_jacobian(v, f, uv, ftc)    
-    J_i = get_jacobian(v_i, f, uv_i, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)    
+    J_i, _ = get_jacobian(v_i, f, uv_i, ftc)
     
     assert J == pytest.approx(np.array([[[1.5*math.sqrt(2), 0], [0, math.sqrt(2)/2]],
                                          [[1.5, -1.5], [0.5, 0.5]],
@@ -68,8 +68,8 @@ def test_regression_jacobian_triangle():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    J = get_jacobian(v, f, uv, ftc)    
-    J_i = get_jacobian(v_i, f, uv_i, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)    
+    J_i, _ = get_jacobian(v_i, f, uv_i, ftc)
     
     assert J == pytest.approx(np.array([[[0.5*math.sqrt(6), 0], [0, math.sqrt(6)/3]]]))
     assert J_i == pytest.approx(np.array([[[1.5, 0], [0, 1]]]))
@@ -80,8 +80,8 @@ def test_regression_jacobian_with_flat():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    J = get_jacobian(v, f, uv, ftc)    
-    J_i = get_jacobian(v_i, f, uv_i, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)    
+    J_i, _ = get_jacobian(v_i, f, uv_i, ftc)
     
     assert J == pytest.approx(np.array([[[1, 1], [0, 0]], [[1, 1], [-1, 1]]]))
     assert J_i == pytest.approx(np.array([[[math.sqrt(2)/4, math.sqrt(2)/4], [0, 0]], 

@@ -17,12 +17,12 @@ def test_artist_match_angle_square_scaled():
     fpath = os.path.join(fixture_dir, "square_scaled.obj")
     
     _, _, f_o, ftc_o, v_o, uv_o, mesh_areas_o, uv_areas_o = preprocess(ofpath)
-    J_o = get_jacobian(v_o, f_o, uv_o, ftc_o)
+    J_o, _ = get_jacobian(v_o, f_o, uv_o, ftc_o)
     singular_values_o, _, _ = get_singular_values(J_o)
     _, angle_errors_o, _, _ = get_angle_distortion(singular_values_o, mesh_areas_o, v_o, f_o, uv_o, ftc_o)
     
     _, _, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, _, _ = get_singular_values(J)
     _, angle_errors, _, _ = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
     
@@ -34,12 +34,12 @@ def test_artist_match_angle_square_stretched():
     fpath = os.path.join(fixture_dir, "square_stretched.obj")
     
     _, _, f_o, ftc_o, v_o, uv_o, mesh_areas_o, uv_areas_o = preprocess(ofpath)
-    J_o = get_jacobian(v_o, f_o, uv_o, ftc_o)
+    J_o, _ = get_jacobian(v_o, f_o, uv_o, ftc_o)
     singular_values_o, _, _ = get_singular_values(J_o)
     _, angle_errors_o, _, _ = get_angle_distortion(singular_values_o, mesh_areas_o, v_o, f_o, uv_o, ftc_o)
     
     _, _, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, _, _ = get_singular_values(J)
     _, angle_errors, _, _ = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
     
@@ -54,12 +54,12 @@ def test_artist_match_angle_diff_shifts():
     fpath = os.path.join(fixture_dir, "left_shift.obj")
     
     _, _, f_o, ftc_o, v_o, uv_o, mesh_areas_o, uv_areas_o = preprocess(ofpath)
-    J_o = get_jacobian(v_o, f_o, uv_o, ftc_o)
+    J_o, _ = get_jacobian(v_o, f_o, uv_o, ftc_o)
     singular_values_o, _, _ = get_singular_values(J_o)
     _, angle_errors_o, _, _ = get_angle_distortion(singular_values_o, mesh_areas_o, v_o, f_o, uv_o, ftc_o)
     
     _, _, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, _, _ = get_singular_values(J)
     _, angle_errors, _, _ = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
     
@@ -74,12 +74,12 @@ def test_artist_match_angle_flattened_triangle():
     fpath = os.path.join(fixture_dir, "with_flat.obj")
     
     _, _, f_o, ftc_o, v_o, uv_o, mesh_areas_o, uv_areas_o = preprocess(ofpath)
-    J_o = get_jacobian(v_o, f_o, uv_o, ftc_o)
+    J_o, _ = get_jacobian(v_o, f_o, uv_o, ftc_o)
     singular_values_o, _, _ = get_singular_values(J_o)
     _, angle_errors_o, _, _ = get_angle_distortion(singular_values_o, mesh_areas_o, v_o, f_o, uv_o, ftc_o)
     
     _, _, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, _, _ = get_singular_values(J)
     _, angle_errors, _, _ = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
     

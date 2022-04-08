@@ -87,6 +87,8 @@ def get_dataset_characteristics(dataset_folder):
     
 def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
     v_io, uv_io, f_o, ftc_o, v_o, uv_o, mesh_areas_o, uv_areas_o = preprocess(ofpath)
+    f_o_wnan, ftc_o_wnan, mesh_areas_o_wnan, uv_areas_o_wnan = f_o, ftc_o, mesh_areas_o, uv_areas_o
+
     try:                
         if not os.path.isfile(fpath):
             print("No parameterization provided for", fname)
@@ -113,14 +115,28 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
 
             return row_series, None
 
+        J, nan_faces = get_jacobian(v, f, uv, ftc)
+        J_o, nan_faces_o = get_jacobian(v_o, f_o, uv_o, ftc_o)
+        
+        J_o_wnan = J_o
+        f_wnan, ftc_wnan, mesh_areas_wnan, uv_areas_wnan, J_wnan = f, ftc, mesh_areas, uv_areas, J
+        
+        f = np.delete(f, list(nan_faces), axis=0)
+        f_o = np.delete(f_o, list(nan_faces), axis=0)
+        ftc = np.delete(ftc, list(nan_faces), axis=0)
+        ftc_o = np.delete(ftc_o, list(nan_faces), axis=0)
+        mesh_areas = np.delete(mesh_areas, list(nan_faces), axis=1)
+        uv_areas = np.delete(uv_areas, list(nan_faces), axis=1)
+        mesh_areas_o = np.delete(mesh_areas_o, list(nan_faces), axis=1)
+        uv_areas_o = np.delete(uv_areas_o, list(nan_faces), axis=1)
+        J = np.delete(J, list(nan_faces), axis=0)
+        J_o = np.delete(J_o, list(nan_faces), axis=0)
+        
         area_distortions, area_errors, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
-
-        J = get_jacobian(v, f, uv, ftc)
-        J_o = get_jacobian(v_o, f_o, uv_o, ftc_o)
 
         singular_values, min_singular_value, max_singular_value = get_singular_values(J)
         singular_values_o, _, _ = get_singular_values(J_o)
-
+                
         percent_flipped = get_flipped(J)
         percent_flipped = min(percent_flipped, 1 - percent_flipped)
 
@@ -141,9 +157,9 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
         if not mesh_modified:
             hausdorff_distance = 0
         else:
-            hausdorff_distance = igl.hausdorff(v_io, f_o, v_i, f)
+            hausdorff_distance = igl.hausdorff(v_io, f_o_wnan, v_i, f_wnan)
 
-        row = [fname, len(f), len(v), max_area_distortion, total_area_distortion, \
+        row = [fname, len(f_wnan), len(v), max_area_distortion, total_area_distortion, \
               min_singular_value, max_singular_value, percent_flipped, \
               #overlap_area, 
               max_angle_distortion, total_angle_distortion, \
@@ -151,15 +167,15 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
               mesh_modified]
 
         if not use_cut_dataset:
+            # Use original faces for this metric due to dangling UV verts
+            v_to_uv_o, uv_to_v_o, uv_to_v_arr_o = get_v_uv_map(f_o_wnan, ftc_o_wnan)
+            v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f_wnan, ftc_wnan)
 
-            v_to_uv_o, uv_to_v_o, uv_to_v_arr_o = get_v_uv_map(f_o, ftc_o)
-            v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f, ftc)
+            boundary_length_ratio, new_boundary_length_ratio = get_uv_boundary_length(uv, ftc_wnan, f_wnan, uv_to_v_arr)
 
-            boundary_length_ratio, new_boundary_length_ratio = get_uv_boundary_length(uv, ftc, f, uv_to_v_arr)
+            artist_cut_match_mesh = get_artist_cut_match_mesh(uv_to_v_arr_o, v_o, ftc_o_wnan, uv_to_v_arr, v, ftc_wnan)
 
-            artist_cut_match_mesh = get_artist_cut_match_mesh(uv_to_v_arr_o, v_o, ftc_o, uv_to_v_arr, v, ftc)
-
-            artist_cut_match_uv = get_artist_cut_match_uv(uv_o, ftc_o, uv, ftc)
+            artist_cut_match_uv = get_artist_cut_match_uv(uv_o, ftc_o_wnan, uv, ftc_wnan)
 
             row += [new_boundary_length_ratio, artist_cut_match_mesh, artist_cut_match_uv]
 
@@ -171,9 +187,15 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
 
     except Exception as e:
         print("Exception for", fname)
+#         raise e
         print(e)
-        row = [fname, len(f_o), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
-              np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+        if use_cut_dataset:
+            row = [fname, len(f_o_wnan), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
+                  np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+        else:
+            row = [fname, len(f_o_wnan), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
+                  np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, \
+                  np.nan]
 
         row_series = pd.Series(row, index=list(df_columns))
         
@@ -211,13 +233,16 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
     
     interesting_meshes = []
     for mname, num in interesting_mesh_names:
-        fname = next(filename for filename in dataset_files if filename.endswith(mname + "_" + str(num) + ".obj"))
+        try:
+            fname = next(filename for filename in dataset_files if filename.endswith(mname + "_" + str(num) + ".obj"))
+        except StopIteration:
+            continue
         interesting_meshes.append((fname, "Handpicked"))
     
-    df_columns = ["Filename", "Faces", "Vertices", "Max Area Distortion", "Total Area Distortion", \
-                  "Min Singular Value", "Max Singular Value", "Percentage Flipped Triangles", \
+    df_columns = ["Filename", "Faces", "Vertices", "Max Area Distortion", "Average Area Error", \
+                  "Min Singular Value", "Max Singular Value", "Proportion Flipped Triangles", \
                   #"Bijectivity Violation Area", 
-                  "Max Angle Distortion", "Total Angle Distortion", \
+                  "Max Angle Distortion", "Average Angle Error", \
                   "Resolution", "Artist Area Match", "Artist Angle Match", "Hausdorff Distance", "Remeshed"]
     
     if not use_cut_dataset:
@@ -262,8 +287,8 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
             if tri_df_rows is not None:
                 tri_df_sets[fname] = tri_df_rows
                 
-    interesting_maxes = ["Artist Area Match", "Artist Angle Match", "Total Area Distortion", "Total Angle Distortion", \
-                        "Percentage Flipped Triangles"]
+    interesting_maxes = ["Artist Area Match", "Artist Angle Match", "Average Area Error", "Average Angle Error", \
+                        "Proportion Flipped Triangles"]
     
     additional_interesting_meshes = [
         (df.iloc[np.argmax(df[max_key])]["Filename"], max_key)

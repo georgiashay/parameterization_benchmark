@@ -17,6 +17,7 @@ def get_v_uv_map(f, ftc):
     uv_map_arr = np.full(max_uv_idx + 1, None)
     for uv_idx, v_idx in uv_to_v.items():
         uv_map_arr[uv_idx] = v_idx
+        
     uv_map_arr = uv_map_arr.astype(int)
 
     return v_to_uv, uv_to_v, uv_map_arr

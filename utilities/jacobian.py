@@ -26,7 +26,7 @@ def get_jacobian(v, f, uv, ftc):
     f1 = f1.reshape((-1, 3))
     f2 = f2.reshape((-1, 3))
     f3 = f3.reshape((-1, 3))
-    
+        
     dx = face_proj(f1) @ G
     dy = face_proj(f2) @ G
 
@@ -37,4 +37,10 @@ def get_jacobian(v, f, uv, ftc):
     J[:,1,0] = dx @ exploded_uv[:,1]
     J[:,1,1] = dy @ exploded_uv[:,1]
     
-    return J
+    dx_coo = scipy.sparse.coo_matrix(dx)
+    dy_coo = scipy.sparse.coo_matrix(dy)
+    
+    nan_faces = set(dx_coo.row[~np.isfinite(dx_coo.data)])
+    nan_faces |= set(dy_coo.row[~np.isfinite(dy_coo.data)])
+    
+    return J, nan_faces

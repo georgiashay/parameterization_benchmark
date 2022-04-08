@@ -15,10 +15,10 @@ def test_singular_values_square_scaled():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, _, _ = get_singular_values(J)
     
-    J_i = get_jacobian(v_i, f, uv_i, ftc)
+    J_i, _ = get_jacobian(v_i, f, uv_i, ftc)
     singular_values_i, _, _ = get_singular_values(J_i)
 
     assert singular_values_i == pytest.approx(np.array([[0.2, 0.2], [0.2, 0.2]]))
@@ -29,10 +29,10 @@ def test_singular_values_square_stretched():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, _, _ = get_singular_values(J)
     
-    J_i = get_jacobian(v_i, f, uv_i, ftc)
+    J_i, _ = get_jacobian(v_i, f, uv_i, ftc)
     singular_values_i, _, _ = get_singular_values(J_i)
 
     assert singular_values_i == pytest.approx(np.array([[2, 1], [2, 1]]))
@@ -43,10 +43,10 @@ def test_singular_values_grid_shift():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, _, _ = get_singular_values(J)
     
-    J_i = get_jacobian(v_i, f, uv_i, ftc)
+    J_i, _ = get_jacobian(v_i, f, uv_i, ftc)
     singular_values_i, _, _ = get_singular_values(J_i)
 
     assert singular_values_i == pytest.approx(np.array([[3, 1], [3, 1], [1, 1], [1, 1], [3, 1], [3, 1], [1, 1], [1, 1]]))
@@ -60,10 +60,10 @@ def test_singular_values_triangle():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, _, _ = get_singular_values(J)
     
-    J_i = get_jacobian(v_i, f, uv_i, ftc)
+    J_i, _ = get_jacobian(v_i, f, uv_i, ftc)
     singular_values_i, _, _ = get_singular_values(J_i)
     
     assert singular_values_i == pytest.approx(np.array([[1.5, 1]]))
@@ -75,10 +75,10 @@ def test_singular_values_with_flat():
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
     
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, _, _ = get_singular_values(J)
     
-    J_i = get_jacobian(v_i, f, uv_i, ftc)
+    J_i, _ = get_jacobian(v_i, f, uv_i, ftc)
     singular_values_i, _, _ = get_singular_values(J_i)
     
     assert singular_values_i == pytest.approx(np.array([[0.5, 0], [0.5, 0.5]]))

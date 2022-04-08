@@ -1,7 +1,7 @@
 import igl
 import numpy as np
 
-def get_uv_boundary_length(uv, ftc, f, uv_to_v_arr):    
+def get_uv_boundary_length(uv, ftc, f, uv_to_v_arr):  
     uv_boundary_edges = igl.boundary_facets(ftc)
     v_boundary_edges = igl.boundary_facets(f)
     v_boundary_list = v_boundary_edges.tolist()

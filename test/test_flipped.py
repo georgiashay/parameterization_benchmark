@@ -12,7 +12,7 @@ def test_flipped_square():
     fpath = os.path.join(fixture_dir, "square.obj")
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     
     flipped = get_flipped(J)
         
@@ -22,7 +22,7 @@ def test_flipped_square_stretched():
     fpath = os.path.join(fixture_dir, "square_stretched.obj")
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     
     flipped = get_flipped(J)
         
@@ -32,7 +32,7 @@ def test_flipped_one_flipped_tri():
     fpath = os.path.join(fixture_dir, "flipped_tri.obj")
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     
     flipped = get_flipped(J)
         
@@ -42,7 +42,7 @@ def test_flipped_folded():
     fpath = os.path.join(fixture_dir, "folded.obj")
     
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     
     flipped = get_flipped(J)
         

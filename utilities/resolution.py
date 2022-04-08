@@ -12,7 +12,7 @@ def get_resolution(v, f, uv, ftc):
 
     #Each triangle gets stretched in its two directions by the singular values.
     #Rotations are irrelevant.
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     sigmas = np.linalg.svd(J)[1]
 
     #If the singular values are all 1, then a resolution of 1 can be achieved

@@ -14,7 +14,7 @@ fixture_dir = os.path.join(test_dir, "fixtures")
 def test_angle_distortion_square():
     fpath = os.path.join(fixture_dir, "square.obj")
     _, _, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, min_singular_value, max_singular_value = get_singular_values(J)
     
     _, _, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
@@ -25,7 +25,7 @@ def test_angle_distortion_square():
 def test_angle_distortion_scaled_square():
     fpath = os.path.join(fixture_dir, "square_scaled.obj")
     _, _, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, min_singular_value, max_singular_value = get_singular_values(J)
     
     _, _, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
@@ -36,7 +36,7 @@ def test_angle_distortion_scaled_square():
 def test_angle_distortion_stretched_square():
     fpath = os.path.join(fixture_dir, "square_stretched.obj")
     _, _, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, min_singular_value, max_singular_value = get_singular_values(J)
     
     _, _, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
@@ -49,7 +49,7 @@ def test_angle_distortion_stretched_square():
 def test_angle_distortion_grid_shift():
     fpath = os.path.join(fixture_dir, "grid_shift.obj")
     _, _, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, min_singular_value, max_singular_value = get_singular_values(J)
     
     _, _, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
@@ -63,7 +63,7 @@ def test_angle_distortion_grid_shift():
 def test_angle_distortion_triangle():
     fpath = os.path.join(fixture_dir, "triangle.obj")
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, min_singular_value, max_singular_value = get_singular_values(J)
     
     _, _, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
@@ -80,7 +80,7 @@ def test_angle_distortion_triangle():
 def test_angle_distortion_flat_triangle():
     fpath = os.path.join(fixture_dir, "with_flat.obj")
     v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
-    J = get_jacobian(v, f, uv, ftc)
+    J, _ = get_jacobian(v, f, uv, ftc)
     singular_values, min_singular_value, max_singular_value = get_singular_values(J)
     
     _, _, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
