@@ -17,7 +17,7 @@ import fpdf
 from fpdf import FPDF
 
 
-def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder, remeshed=False):
+def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder, produce_scatter, remeshed=False):
     is_comparison = (data2 is not None)
     plot_folder = os.path.join(output_folder, "plots")
     
@@ -136,29 +136,30 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         pdf.image(os.path.join(plot_folder, "resolution.png"), \
                   x=28.35, y=425, w=555.3, h = 222.12, type = '', link = '')       
     
-    pdf.add_page()
-    if is_comparison:
-        pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.png"), \
-                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "average_angle_error_scatter_comp.png"), \
-                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
-        
+    if produce_scatter:
         pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter_comp.png"), \
-                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "average_area_error_scatter_comp.png"), \
-                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
-    else:
-        pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.png"), \
-                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "average_angle_error_scatter_comp.png"), \
-                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
-        
-        pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "max_area_distortion.png"), \
-                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "average_area_error.png"), \
-                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        if is_comparison:
+            pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.png"), \
+                      x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+            pdf.image(os.path.join(plot_folder, "average_angle_error_scatter_comp.png"), \
+                      x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+            
+            pdf.add_page()
+            pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter_comp.png"), \
+                      x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+            pdf.image(os.path.join(plot_folder, "average_area_error_scatter_comp.png"), \
+                      x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        else:
+            pdf.image(os.path.join(plot_folder, "max_angle_distortion.png"), \
+                      x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+            pdf.image(os.path.join(plot_folder, "average_angle_error.png"), \
+                      x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+            
+            pdf.add_page()
+            pdf.image(os.path.join(plot_folder, "max_area_distortion.png"), \
+                      x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+            pdf.image(os.path.join(plot_folder, "average_area_error.png"), \
+                      x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
         
     pdf.add_page()
     if remeshed:
@@ -169,6 +170,8 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
         pdf.image(os.path.join(plot_folder, "artist_area_match.png"), \
                   x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+
+    #Interesting meshes
     
     pdf.output(os.path.join(output_folder, "benchmark_report.pdf"))
     
@@ -185,10 +188,8 @@ def selected_plots(folder1,
     data2 = None if folder2==None else read_csv(os.path.join(folder2, "distortion_characteristics.csv"))
     if data2 != None:
         assert data1.object_id == data2.object_id
-        # assert data1.nfaces == data2.nfaces
-        # assert data1.nvertices == data2.nvertices
-        data1.nfaces = data2.nfaces
-        data1.nvertices = data2.nvertices
+        assert data1.nfaces == data2.nfaces
+        assert data1.nvertices == data2.nvertices
 
     remeshed = any(data1.remeshed) if data2==None else (any(data1.remeshed) or any(data2.remeshed))
 
@@ -342,6 +343,72 @@ def selected_plots(folder1,
             plot_data2=True)
     
     return data1, data2, remeshed
+
+def interesting_meshes(folder1,
+    folder2,
+    name1 = 'dataset 1',
+    name2 = 'dataset 2'):
+
+    #Read in the CSV files to create a namespace
+    meshes1 = read_interesting_meshes_csv(os.path.join(folder1, "triangle_singular_values.csv"))
+    meshes2 = None if folder2==None else read_interesting_meshes_csv(os.path.join(folder2, "triangle_singular_values.csv"))
+    if meshes2 != None:
+        assert len(meshes1) == len(meshes2)
+        for i1,i2 in zip(meshes1, meshes2):
+            assert i1.filename == i2.filename
+            assert i1.triangle_number = i2.triangle_number
+
+    plt.rc('axes', titlesize=16)
+    plt.rc('axes', labelsize=12)
+    plt.rc('xtick', labelsize=12)
+    plt.rc('ytick', labelsize=12)
+    plt.rc('legend', fontsize=12)
+    plt.rc('font', size=12)
+
+    #Load packaged Linux Libertine
+    fontdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        'utilities', 'assets', 'fonts')
+    for font in matplotlib.font_manager.findSystemFonts(fontdir):
+        matplotlib.font_manager.fontManager.addfont(font)
+    plt.rc('font', family='serif')
+    plt.rc('font', serif='Linux Libertine')
+
+    def make_interesting_graph_for_prop(prop,
+        title,
+        plot_data2):
+        plot_2 = plot_data2 
+        if meshes2==None:
+            plot_2 = False
+
+            if plot_2:
+                for mesh1,mesh2 in zip(meshes1,meshes2):
+                    axis = scatter_comparison(getattr(mesh1, prop),
+                        name1,
+                        getattr(mesh2, prop),
+                        name2,
+                        title=title + f', {prop}')
+                    scatter_comp_path = os.path.join(out_dir, title + f'_{prop}_scatter_comp.')
+                    plt.savefig(scatter_comp_path + 'pdf')
+                    plt.savefig(scatter_comp_path + 'png', dpi=300)
+                    plt.close()
+            else:
+                for mesh1 in meshes1:
+                    axis = hist(getattr(mesh1, prop),
+                    name1,
+                    title=title + f', {prop}',
+                    comment='(failed parametrizations are ∞)',
+                    logx=True,
+                    zero_bin=False,
+                    inf_bin=True)
+                    hist_path = os.path.join(out_dir, title + f'_{prop}.')
+                    plt.savefig(hist_path + 'pdf')
+                    plt.savefig(hist_path + 'png', dpi=300)
+                    plt.close()
+
+    make_interesting_graph_for_prop('singular_value_1', 'Singular value 1')
+    make_interesting_graph_for_prop('singular_value_2', 'Singular value 2')
+
+    return None
 
 
 # Histogram with data
@@ -744,6 +811,47 @@ def read_csv(path):
 
     return data
 
+def read_interesting_meshes_csv(path):
+
+    datas = []
+    current_filename = None
+    read_first_row = False
+    with open(path, newline='') as parsing:
+        reader = csv.reader(parsing)
+        for row in reader:
+            assert len(row) == 6
+            if not read_first_row:
+                read_first_row = True
+                #Make sure all columns have the expected headers
+                assert row[1] == 'Filename'
+                assert row[2] == 'Triangle Number'
+                assert row[3] == 'Singular Value 1'
+                assert row[4] == 'Singular Value 2'
+                assert row[5] == 'Reason'
+            else:
+                #Given the namings above, put everything into
+
+                filename = row[1]
+                if filename != current_filename:
+                    current_filename = filename
+                    data = SimpleNamespace()
+                    data.object_id = []
+                    data.filename = filename
+                    data.triangle_number = []
+                    data.singular_value_1 = []
+                    data.singular_value_2 = []
+                    data.reason = row[5]
+                    datas.append(data)
+
+                assert datas[-1].filename == filename
+                assert datas[-1].reason == row[5]
+                datas[-1].object_id.append(to_int(row[0]))
+                datas[-1].triangle_number.append(to_int(row[0]))
+                datas[-1].singular_value_1.append(to_float(row[0]))
+                datas[-1].singular_value_2.append(to_float(row[0]))
+
+    return datas
+
 
 #Custom int and float conversions
 def to_float(val):
@@ -818,6 +926,9 @@ if __name__ == "__main__":
     
     data1, data2, remeshed = selected_plots(folder1=folder1, folder2=folder2, name1=name1, name2=name2, \
                                   produce_scatter=produce_scatter, out_dir=plot_folder)
+
+    interesting_meshes(folder1=folder1, folder2=folder2, name1=name1, name2=name2)
     
     generate_report(data1=data1, data2=data2, folder1=folder1, folder2=folder2, 
-                    name1=name1, name2=name2, output_folder=output_folder, remeshed=remeshed)
+                    name1=name1, name2=name2, output_folder=output_folder, produce_scatter=produce_scatter,
+                    remeshed=remeshed)
