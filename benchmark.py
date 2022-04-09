@@ -20,7 +20,7 @@ from utilities.overlap_area import get_overlap_area
 from utilities.resolution import get_resolution
 from utilities.artist_match_area import get_artist_area_match
 from utilities.artist_match_angle import get_artist_angle_match
-from utilities.uv_boundary_ratio import get_uv_boundary_length
+from utilities.mesh_cut_length import get_mesh_cut_length
 from utilities.artist_cut_match_mesh import get_artist_cut_match_mesh
 from utilities.artist_cut_match_uv import get_artist_cut_match_uv
 from utilities.v_uv_map import get_v_uv_map
@@ -47,43 +47,6 @@ class TagChooser:
         elif s == "any":
             return TagChoice.ANY_TAG
         raise ValueError("Tag must be " + self.choice_no + ", " + self.choice_yes + ", or any.")
-
-def get_dataset_characteristics(dataset_folder):
-    df = pd.DataFrame(columns=["Filename", "Object Number", "Mesh Name", "Chart Number", \
-                               "Vertices", "Faces", "Euler Characteristic",
-                               "Total Boundary Length", "Boundary Faces", "Interior Faces", \
-                               "Closed"])
-    dataset_files = os.listdir(dataset_folder)
-
-    for i, fname in enumerate(dataset_files):
-        print(i+1, "/", len(dataset_files), fname, end="\r\n")
-        fpath = os.path.join(dataset_folder, fname)
-        full_name, ext = os.path.splitext(fname)
-        if os.path.isfile(fpath) and ext == ".obj" and not fname.endswith("_all.obj"):
-            split_name = full_name.split("_")
-            object_number = int(split_name[1])
-            mesh_name = "_".join(split_name[2:-1])
-            chart_number = int(split_name[-1])
-
-            v, uv, n, f, ftc, fn = igl.read_obj(fpath)
-            f = f.reshape((-1, 3))
-            
-            boundary_triangles = np.sum(np.any(igl.triangle_triangle_adjacency(f)[0].reshape((-1, 3)) == -1, axis=1))
-            interior_triangles = len(f) - boundary_triangles
-            is_closed = boundary_triangles == 0
-            euler_characteristic = igl.euler_characteristic(f)
-            boundary_length = len(igl.boundary_facets(f))
-               
-            row = [fname, object_number, mesh_name, chart_number, \
-                   len(v), len(f), euler_characteristic,
-                   boundary_length, boundary_triangles, interior_triangles, \
-                   is_closed]
-            
-            row_series = pd.Series(row, index=df.columns)
-            
-            df = df.append(row_series, ignore_index=True)
-        
-    df.to_csv("mesh_characteristics.csv")
     
 def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
     v_io, uv_io, f_o, ftc_o, v_o, uv_o, mesh_areas_o, uv_areas_o = preprocess(ofpath)
@@ -92,12 +55,11 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
     try:                
         if not os.path.isfile(fpath):
             print("No parameterization provided for", fname)
-            row = [fname, len(f_o), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                  np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+            row = [fname, len(f_o), len(v_o)] + [np.nan] * (len(df_columns) - 3)
 
-            row_series = pd.Series(row, index=list(df_columns))
-
-            return row_series, None
+            df_row = pd.DataFrame({ col: [row[i]] for i, col in enumerate(df_columns)})
+            
+            return df_row, None
 
         v_i, uv_i, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
 
@@ -108,12 +70,11 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
 
         if np.any(np.isnan(uv_i)):
             print("Nan texture coordinates for", fname)
-            row = [fname, len(f), len(v), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                  np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+            row = [fname, len(f_o), len(v_o)] + [np.nan] * (len(df_columns) - 3)
 
-            row_series = pd.Series(row, index=list(df_columns))
+            df_row = pd.DataFrame({ col: [row[i]] for i, col in enumerate(df_columns)})
 
-            return row_series, None
+            return df_row, None
 
         J, nan_faces = get_jacobian(v, f, uv, ftc)
         J_o, nan_faces_o = get_jacobian(v_o, f_o, uv_o, ftc_o)
@@ -121,16 +82,28 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
         J_o_wnan = J_o
         f_wnan, ftc_wnan, mesh_areas_wnan, uv_areas_wnan, J_wnan = f, ftc, mesh_areas, uv_areas, J
         
-        f = np.delete(f, list(nan_faces), axis=0)
-        f_o = np.delete(f_o, list(nan_faces), axis=0)
-        ftc = np.delete(ftc, list(nan_faces), axis=0)
-        ftc_o = np.delete(ftc_o, list(nan_faces), axis=0)
-        mesh_areas = np.delete(mesh_areas, list(nan_faces), axis=1)
-        uv_areas = np.delete(uv_areas, list(nan_faces), axis=1)
-        mesh_areas_o = np.delete(mesh_areas_o, list(nan_faces), axis=1)
-        uv_areas_o = np.delete(uv_areas_o, list(nan_faces), axis=1)
-        J = np.delete(J, list(nan_faces), axis=0)
-        J_o = np.delete(J_o, list(nan_faces), axis=0)
+        if mesh_modified:
+            f = np.delete(f, list(nan_faces), axis=0)
+            f_o = np.delete(f_o, list(nan_faces_o), axis=0)
+            ftc = np.delete(ftc, list(nan_faces), axis=0)
+            ftc_o = np.delete(ftc_o, list(nan_faces_o), axis=0)
+            mesh_areas = np.delete(mesh_areas, list(nan_faces), axis=1)
+            uv_areas = np.delete(uv_areas, list(nan_faces), axis=1)
+            mesh_areas_o = np.delete(mesh_areas_o, list(nan_faces_o), axis=1)
+            uv_areas_o = np.delete(uv_areas_o, list(nan_faces_o), axis=1)
+            J = np.delete(J, list(nan_faces), axis=0)
+            J_o = np.delete(J_o, list(nan_faces_o), axis=0)
+        else:
+            f = np.delete(f, list(nan_faces), axis=0)
+            f_o = np.delete(f_o, list(nan_faces), axis=0)
+            ftc = np.delete(ftc, list(nan_faces), axis=0)
+            ftc_o = np.delete(ftc_o, list(nan_faces), axis=0)
+            mesh_areas = np.delete(mesh_areas, list(nan_faces), axis=1)
+            uv_areas = np.delete(uv_areas, list(nan_faces), axis=1)
+            mesh_areas_o = np.delete(mesh_areas_o, list(nan_faces), axis=1)
+            uv_areas_o = np.delete(uv_areas_o, list(nan_faces), axis=1)
+            J = np.delete(J, list(nan_faces), axis=0)
+            J_o = np.delete(J_o, list(nan_faces), axis=0)
         
         area_distortions, area_errors, max_area_distortion, total_area_distortion = get_area_distortion(uv_areas, mesh_areas)
 
@@ -171,35 +144,28 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
             v_to_uv_o, uv_to_v_o, uv_to_v_arr_o = get_v_uv_map(f_o_wnan, ftc_o_wnan)
             v_to_uv, uv_to_v, uv_to_v_arr = get_v_uv_map(f_wnan, ftc_wnan)
 
-            boundary_length_ratio, new_boundary_length_ratio = get_uv_boundary_length(uv, ftc_wnan, f_wnan, uv_to_v_arr)
+            mesh_cut_length = get_mesh_cut_length(uv_to_v_arr, v, f_wnan, ftc_wnan)
 
             artist_cut_match_mesh = get_artist_cut_match_mesh(uv_to_v_arr_o, v_o, ftc_o_wnan, uv_to_v_arr, v, ftc_wnan)
 
             artist_cut_match_uv = get_artist_cut_match_uv(uv_o, ftc_o_wnan, uv, ftc_wnan)
 
-            row += [new_boundary_length_ratio, artist_cut_match_mesh, artist_cut_match_uv]
+            row += [mesh_cut_length, artist_cut_match_mesh, artist_cut_match_uv]
 
-        row_series = pd.Series(row, index=list(df_columns))
+        df_row = pd.DataFrame({ col: [row[i]] for i, col in enumerate(df_columns)})
         
         new_tri_df = pd.DataFrame({"Filename": fname, "Triangle Number": range(singular_values.shape[0]), "Singular Value 1": singular_values[:, 0], "Singular Value 2": singular_values[:, 1], "Reason": ""})
             
-        return row_series, new_tri_df
+        return df_row, new_tri_df
 
     except Exception as e:
         print("Exception for", fname)
-#         raise e
         print(e)
-        if use_cut_dataset:
-            row = [fname, len(f_o_wnan), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                  np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-        else:
-            row = [fname, len(f_o_wnan), len(v_o), np.nan, np.nan, np.nan, np.nan, np.nan, \
-                  np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, \
-                  np.nan]
+        row = [fname, len(f_o_wnan), len(v_o)] + [np.nan] * (len(df_columns) - 3)
 
-        row_series = pd.Series(row, index=list(df_columns))
+        df_row = pd.DataFrame({ col: [row[i]] for i, col in enumerate(df_columns)})
         
-        return row_series, None
+        return df_row, None
     
 def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, output_folder, tag_choices, processes):
     if not os.path.exists(output_folder):
@@ -207,6 +173,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
     else:
         shutil.rmtree(output_folder)
         os.mkdir(output_folder)
+        
     
     if use_cut_dataset:
         cut_choice_folder = "Cut"
@@ -246,7 +213,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
                   "Resolution", "Artist Area Match", "Artist Angle Match", "Hausdorff Distance", "Remeshed"]
     
     if not use_cut_dataset:
-        df_columns += ["UV Cut Boundary Ratio", "Artist Mesh Cut Length Match", "Artist UV Cut Length Match"]
+        df_columns += ["Mesh Cut Length", "Artist Mesh Cut Length Match", "Artist UV Cut Length Match"]
         
     df = pd.DataFrame(columns=df_columns)
     
@@ -283,7 +250,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
         for i, (fname, res) in enumerate(results):
             print(i+1, "/", len(results), fname)
             df_row, tri_df_rows = res.get()
-            df = df.append(df_row, ignore_index=True)
+            df = pd.concat([df, df_row], ignore_index=True)
             if tri_df_rows is not None:
                 tri_df_sets[fname] = tri_df_rows
                 
@@ -297,16 +264,20 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
     
     interesting_meshes += additional_interesting_meshes
     interesting_mesh_files = [fname for fname, reason in interesting_meshes]
-                
-    df.to_csv(os.path.join(output_folder, "distortion_characteristics.csv"))
+        
+    filename_sort_keys = df["Filename"].apply(lambda s: (int(s.split("_")[1]), int(s.split("_")[-1].split(".")[0])))
+    sorted_index = filename_sort_keys.sort_values().index
+    df = df.loc[sorted_index]
+    
+    df.to_csv(os.path.join(output_folder, "distortion_characteristics.csv"), index=False)
     
     for fname, reason in interesting_meshes:
         if fname in tri_df_sets:
             new_rows = tri_df_sets[fname]
             new_rows["Reason"] = reason
-            tri_df = tri_df.append(new_rows)
+            tri_df = pd.concat([tri_df, new_rows])
     
-    tri_df.to_csv(os.path.join(output_folder, "triangle_singular_values.csv"))
+    tri_df.to_csv(os.path.join(output_folder, "triangle_singular_values.csv"), index=False)
 
     
     
@@ -334,6 +305,10 @@ if __name__ == "__main__":
         "Manifold": args.manifold,
         "Small": args.size
     }
-        
-#     get_dataset_characteristics(dataset_folder)
+     
+    artist_subfolder = os.path.join(output_folder, "artist")
+    cut_choice = "Cut" if use_cut_dataset else "Uncut"
+    artist_param_folder = os.path.join(dataset_folder, "Artist_UVs", cut_choice)
+    
     get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, output_folder, tag_choices, processes)
+    get_uv_characteristics(dataset_folder, artist_param_folder, use_cut_dataset, artist_subfolder, tag_choices, processes)

@@ -356,7 +356,7 @@ def interesting_meshes(folder1,
         assert len(meshes1) == len(meshes2)
         for i1,i2 in zip(meshes1, meshes2):
             assert i1.filename == i2.filename
-            assert i1.triangle_number = i2.triangle_number
+            assert i1.triangle_number == i2.triangle_number
 
     plt.rc('axes', titlesize=16)
     plt.rc('axes', labelsize=12)
@@ -750,6 +750,7 @@ def scatter_comparison(data1,
 def read_csv(path):
 
     data = SimpleNamespace()
+    data.cut = True
     data.object_id = []
     data.nfaces = []
     data.nvertices = []
@@ -766,48 +767,70 @@ def read_csv(path):
     data.artist_angle_match = []
     data.hausdorff_distance = []
     data.remeshed = []
+    
+    current_object_id = 0
 
     read_first_row = False
     with open(path, newline='') as parsing:
         reader = csv.reader(parsing)
         for row in reader:
-            assert len(row) == 16
             if not read_first_row:
+                assert len(row) == 15 or len(row) == 18
                 read_first_row = True
                 #Make sure all columns have the expected headers
-                assert row[1] == 'Filename'
-                assert row[2] == 'Faces'
-                assert row[3] == 'Vertices'
-                assert row[4] == 'Max Area Distortion'
-                assert row[5] == 'Average Area Error'
-                assert row[6] == 'Min Singular Value'
-                assert row[7] == 'Max Singular Value'
-                assert row[8] == 'Proportion Flipped Triangles'
-                assert row[9] == 'Max Angle Distortion'
-                assert row[10] == 'Average Angle Error'
-                assert row[11] == 'Resolution'
-                assert row[12] == 'Artist Area Match'
-                assert row[13] == 'Artist Angle Match'
-                assert row[14] == 'Hausdorff Distance'
-                assert row[15] == 'Remeshed'
+                assert row[0] == 'Filename'
+                assert row[1] == 'Faces'
+                assert row[2] == 'Vertices'
+                assert row[3] == 'Max Area Distortion'
+                assert row[4] == 'Average Area Error'
+                assert row[5] == 'Min Singular Value'
+                assert row[6] == 'Max Singular Value'
+                assert row[7] == 'Proportion Flipped Triangles'
+                assert row[8] == 'Max Angle Distortion'
+                assert row[9] == 'Average Angle Error'
+                assert row[10] == 'Resolution'
+                assert row[11] == 'Artist Area Match'
+                assert row[12] == 'Artist Angle Match'
+                assert row[13] == 'Hausdorff Distance'
+                assert row[14] == 'Remeshed'
+                
+                if len(row) == 18:
+                    data.cut = False
+                    assert row[15] == "Mesh Cut Length"
+                    assert row[16] == "Artist Mesh Cut Length Match"
+                    assert row[17] == "Artist UV Cut Length Match"
+                    data.mesh_cut_length = []
+                    data.artist_mesh_cut_length_match = []
+                    data.artist_uv_cut_length_match = []
             else:
+                if data.cut:
+                    assert len(row) == 15
+                else:
+                    assert len(row) == 18
                 #Given the namings above, put everything into the correct array.
-                data.object_id.append(to_int(row[0]))
-                data.filename.append(row[1])
-                data.nfaces.append(to_int(row[2]))
-                data.nvertices.append(to_int(row[3]))
-                data.max_area_distortion.append(to_float(row[4]))
-                data.average_area_error.append(to_float(row[5]))
-                data.min_singular_value.append(to_float(row[6]))
-                data.max_singular_value.append(to_float(row[7]))
-                data.proportion_flipped_triangles.append(to_float(row[8]))
-                data.max_angle_distortion.append(to_float(row[9]))
-                data.average_angle_error.append(to_float(row[10]))
-                data.resolution.append(to_float(row[11]))
-                data.artist_area_match.append(to_float(row[12]))
-                data.artist_angle_match.append(to_float(row[13]))
-                data.hausdorff_distance.append(to_float(row[14]))
-                data.remeshed.append(to_bool(row[15]))
+                data.object_id.append(current_object_id)
+                data.filename.append(row[0])
+                data.nfaces.append(to_int(row[1]))
+                data.nvertices.append(to_int(row[2]))
+                data.max_area_distortion.append(to_float(row[3]))
+                data.average_area_error.append(to_float(row[4]))
+                data.min_singular_value.append(to_float(row[5]))
+                data.max_singular_value.append(to_float(row[6]))
+                data.proportion_flipped_triangles.append(to_float(row[7]))
+                data.max_angle_distortion.append(to_float(row[8]))
+                data.average_angle_error.append(to_float(row[9]))
+                data.resolution.append(to_float(row[10]))
+                data.artist_area_match.append(to_float(row[11]))
+                data.artist_angle_match.append(to_float(row[12]))
+                data.hausdorff_distance.append(to_float(row[13]))
+                data.remeshed.append(to_bool(row[14]))
+                
+                current_object_id += 1
+                
+                if not data.cut:
+                    data.mesh_cut_length.append(to_float(row[15]))
+                    data.artist_mesh_cut_length_match.append(to_float(row[16]))
+                    data.artist_uv_cut_length_match.append(to_float(row[17]))
 
     return data
 
