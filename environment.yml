@@ -1,0 +1,12 @@
+name: pbench
+channels:
+ - conda-forge
+ - defaults
+dependencies:
+ - python=3.8
+ - pandas
+ - scipy
+ - igl
+ - shapely
+ - matplotlib
+ - fpdf
