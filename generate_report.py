@@ -20,6 +20,7 @@ from fpdf import FPDF
 def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder, produce_scatter, remeshed=False, comp_artist=False):
     is_comparison = (data2 is not None)
     plot_folder = os.path.join(output_folder, "plots")
+    interesting_mesh_folder = os.path.join(plot_folder, "interesting_meshes")
     
     pdf = FPDF(orientation="P", unit="pt", format="letter")
     pdf.add_page()
@@ -171,7 +172,31 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         pdf.image(os.path.join(plot_folder, "artist_area_match.png"), \
                   x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
 
-    #Interesting meshes
+    
+    interesting_mesh_files = sorted([(f,) + tuple(f.split("__")) for f in os.listdir(interesting_mesh_folder) \
+                                     if f.endswith(".png")])
+    interesting_mesh_files = [(f, " ".join(reason.split("_")), filename, " ".join(prop.split("_"))) \
+                              for f, reason, filename, prop in interesting_mesh_files]
+    
+    
+    if len(interesting_mesh_files) > 0:
+        pdf.add_page()
+
+        pdf.set_x(0)
+        pdf.set_y(24)
+        pdf.set_font_size(18)
+        pdf.write(18, "Interesting Meshes")
+    
+        for i, (f, reason, filename, prop) in enumerate(interesting_mesh_files):
+            first_page = i // 2 == 0
+            y = 50 if not first_page else 75
+            y = y if i % 2 == 0 else y + 225
+            
+            if i % 2 == 0 and not first_page:
+                pdf.add_page()
+                
+            pdf.image(os.path.join(interesting_mesh_folder, f), x=28.34, y=y, w=555.3, h=222.12, type="", link="")
+        
     
     pdf.output(os.path.join(output_folder, "benchmark_report.pdf"))
     
@@ -187,12 +212,14 @@ def selected_plots(folder1,
     #Read in the CSV files to create a namespace
     data1 = read_csv(os.path.join(folder1, "distortion_characteristics.csv"))
     data2 = None if folder2==None else read_csv(os.path.join(folder2, "distortion_characteristics.csv"))
+    
+    remeshed = any(data1.remeshed) if data2==None else (any(data1.remeshed) or any(data2.remeshed))
+
     if data2 != None:
         assert data1.object_id == data2.object_id
-        assert data1.nfaces == data2.nfaces
-        assert data1.nvertices == data2.nvertices
+        assert remeshed or data1.nfaces == data2.nfaces
+        assert remeshed or data1.nvertices == data2.nvertices
 
-    remeshed = any(data1.remeshed) if data2==None else (any(data1.remeshed) or any(data2.remeshed))
 
     plt.rc('axes', titlesize=16)
     plt.rc('axes', labelsize=12)
@@ -366,6 +393,7 @@ def interesting_meshes(folder1,
         meshes2.sort(key = lambda m: m.filename)
         new_meshes1 = []
         new_meshes2 = []
+        excess_meshes2 = []
         i = 0
         j = 0
         while i < len(meshes1) and j < len(meshes2):
@@ -373,11 +401,14 @@ def interesting_meshes(folder1,
                 if meshes1[i].triangle_number == meshes2[j].triangle_number:
                     new_meshes1.append(meshes1[i])
                     new_meshes2.append(meshes2[j])
+                else:
+                    excess_meshes2.append(meshes2[j])
                 i += 1
                 j += 1
             elif meshes1[i].filename < meshes2[j].filename:
                 i += 1
             else:
+                excess_meshes2.append(meshes2[j])
                 j += 1
                 
         meshes1 = new_meshes1
@@ -405,25 +436,67 @@ def interesting_meshes(folder1,
         plot_2 = (meshes2 is not None)
         if plot_2:
             for mesh1,mesh2 in zip(meshes1,meshes2):
+                if mesh1.reason == "Handpicked":
+                    plot_title = mesh1.filename + " - " + title
+                else:
+                    plot_title = "Worst " + mesh1.reason + ": " + mesh1.filename +  " - " + title
                 axis = scatter_comparison(getattr(mesh1, prop),
                     name1,
                     getattr(mesh2, prop),
                     name2,
-                    title=mesh1.filename + " " + title + ".")
-                scatter_comp_path = os.path.join(out_dir, mesh1.reason + " " + mesh1.filename + " " + title + ".")
+                    title=plot_title)
+                
+                reason_e = "_".join(mesh1.reason.split(" "))
+                title_e = "_".join(title.split(" " ))
+                filename_e = mesh1.filename.split(".")[0]
+                
+                scatter_comp_path = os.path.join(out_dir, reason_e + "__" + filename_e + "__" + title_e + ".")
                 plt.savefig(scatter_comp_path + 'pdf')
                 plt.savefig(scatter_comp_path + 'png', dpi=300)
                 plt.close()
+            if comp_artist:
+                for mesh in excess_meshes2:
+                    if mesh.reason == "Handpicked":
+                        plot_title = mesh.filename + " - " + title
+                    else:
+                        plot_title = "Worst " + mesh.reason + ": " + mesh.filename + " - " + title
+                    
+                    axis = hist(getattr(mesh, prop),
+                    name1,
+                    title=plot_title,
+                    comment='(failed parametrizations are ∞)',
+                    logx=True,
+                    zero_bin=False,
+                    inf_bin=True)
+                    
+                    reason_e = "_".join(mesh.reason.split(" "))
+                    title_e = "_".join(title.split(" " ))
+                    filename_e = mesh.filename.split(".")[0]
+                    
+                    hist_path = os.path.join(out_dir, reason_e + "__" + filename_e + "__" + title_e + ".")
+                    plt.savefig(hist_path + 'pdf')
+                    plt.savefig(hist_path + 'png', dpi=300)
+                    plt.close()
         else:
             for mesh1 in meshes1:
+                if mesh1.reason == "Handpicked":
+                    plot_title = mesh1.filename + " - " + title
+                else:
+                    plot_title = "Worst " + mesh1.reason + ": " + mesh1.filename + " - " + title
+                    
                 axis = hist(getattr(mesh1, prop),
                 name1,
-                title=mesh1.filename + " " + title,
+                title=plot_title,
                 comment='(failed parametrizations are ∞)',
                 logx=True,
                 zero_bin=False,
                 inf_bin=True)
-                hist_path = os.path.join(out_dir, mesh1.reason + " " + mesh1.filename + " " + title + ".")
+                
+                reason_e = "_".join(mesh1.reason.split(" "))
+                title_e = "_".join(title.split(" " ))
+                filename_e = mesh1.filename.split(".")[0]
+                    
+                hist_path = os.path.join(out_dir, reason_e + "__" + filename_e + "__" + title_e + ".")
                 plt.savefig(hist_path + 'pdf')
                 plt.savefig(hist_path + 'png', dpi=300)
                 plt.close()
