@@ -369,7 +369,7 @@ def selected_plots(folder1,
             title='Hausdorff error introduced by remeshing',
             comment='One of the methods remeshes the input surface. This plot documents the extent.',
             logx=False,
-            inf_bin=False)
+            inf_bin=True)
         hausdorff_distance_path = os.path.join(out_dir, 'hausdorff_distance.')
         plt.savefig(hausdorff_distance_path + 'pdf')
         plt.savefig(hausdorff_distance_path + 'png', dpi=300)
@@ -854,13 +854,15 @@ def scatter_comparison(data1,
     axis.set_yticks(yticks,labels=yticklabels)
     axis.margins(x=0.005, y=0.02)
 
-    axis.plot([min1 if logx else 0., inf1], [min2 if logy else 0., inf2],
+    bmin = max(min1,min2) if logx else 0.
+    bmax = min(inf1,inf2)
+    axis.plot([bmin, bmax], [bmin, bmax],
         linestyle='dashed',
         dashes=(10,5),
         linewidth=0.5,
         alpha=0.5,
         color=(0.,0.,0.))
-    label = axis.text(max1, max2, 'x=y', horizontalalignment='right', fontstyle='italic')
+    label = axis.text(bmax, bmax, 'x=y', horizontalalignment='right', fontstyle='italic')
     label.set_bbox(dict(boxstyle="square,pad=0.2",facecolor=(1.,1.,1.,0.5),edgecolor=(0.,0.,0.,0.5)))
 
     return axis
