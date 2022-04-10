@@ -26,7 +26,7 @@ def preprocess(fpath):
         tmp.write(new_f)
         v_i, uv_i, n, f, ftc, fn = igl.read_obj(tmp.name)
         tmp.close()
-                
+
     f = f.reshape((-1, 3))
     ftc = ftc.reshape((-1, 3))
         

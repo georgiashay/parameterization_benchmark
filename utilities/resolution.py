@@ -12,7 +12,8 @@ def get_resolution(v, f, uv, ftc):
 
     #Each triangle gets stretched in its two directions by the singular values.
     #Rotations are irrelevant.
-    J, _ = get_jacobian(v, f, uv, ftc)
+    J, nan_faces = get_jacobian(v, f, uv, ftc)
+    J = np.delete(J, list(nan_faces), axis=0)
     sigmas = np.linalg.svd(J)[1]
 
     #If the singular values are all 1, then a resolution of 1 can be achieved
@@ -22,4 +23,6 @@ def get_resolution(v, f, uv, ftc):
     #Thus, the resolution function is the max of the inverse of the singular
     # values (or Inf if there is a 0 singular value).
     
-    return np.amax(1 / np.abs(sigmas))
+    
+    div_sigmas = np.divide(1, np.abs(sigmas), out=np.full(sigmas.shape, np.inf), where=(sigmas != 0))
+    return np.amax(div_sigmas)
