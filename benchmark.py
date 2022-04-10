@@ -109,6 +109,9 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
 
         singular_values, min_singular_value, max_singular_value = get_singular_values(J)
         singular_values_o, _, _ = get_singular_values(J_o)
+        
+        nan_faces_insert_locs = [face - i for i, face in enumerate(sorted(nan_faces))]
+        singular_values_wnan = np.insert(singular_values, nan_faces_insert_locs, values=np.nan, axis=0)
                 
         percent_flipped = get_flipped(J)
         percent_flipped = min(percent_flipped, 1 - percent_flipped)
@@ -154,7 +157,7 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
 
         df_row = pd.DataFrame({ col: [row[i]] for i, col in enumerate(df_columns)})
         
-        new_tri_df = pd.DataFrame({"Filename": fname, "Triangle Number": range(singular_values.shape[0]), "Singular Value 1": singular_values[:, 0], "Singular Value 2": singular_values[:, 1], "Reason": ""})
+        new_tri_df = pd.DataFrame({"Filename": fname, "Triangle Number": range(singular_values_wnan.shape[0]), "Singular Value 1": singular_values_wnan[:, 0], "Singular Value 2": singular_values_wnan[:, 1], "Reason": ""})
             
         return df_row, new_tri_df
 
