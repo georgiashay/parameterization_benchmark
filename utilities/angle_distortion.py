@@ -45,7 +45,7 @@ def get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc):
     angles_uv, angles_valid_uv = get_angles(uv, ftc)
     
     angles_valid = np.logical_and(angles_valid_mesh, angles_valid_uv)
-    angle_diffs = np.subtract(angles_mesh, angles_uv, out=np.full(angles_mesh.shape, math.pi), where=angles_valid)
+    angle_diffs = np.subtract(angles_mesh, angles_uv, out=np.full(angles_mesh.shape, 2*math.pi), where=angles_valid)
         
     angle_errors = np.sum(np.abs(angle_diffs), axis=1)
     average_angle_error = np.sum(mesh_areas * angle_errors)
