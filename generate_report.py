@@ -862,7 +862,7 @@ def scatter_comparison(data1,
         linewidth=0.5,
         alpha=0.5,
         color=(0.,0.,0.))
-    label = axis.text(bmax, bmax, 'x=y', horizontalalignment='right', fontstyle='italic')
+    label = axis.text(bmax*0.9, bmax*0.9, 'x=y', horizontalalignment='right', fontstyle='italic')
     label.set_bbox(dict(boxstyle="square,pad=0.2",facecolor=(1.,1.,1.,0.5),edgecolor=(0.,0.,0.,0.5)))
 
     return axis
