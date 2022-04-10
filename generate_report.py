@@ -24,7 +24,7 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
     pdf = FPDF(orientation="P", unit="pt", format="letter")
     pdf.add_page()
     
-    font_dir = os.path.join(os.path.abspath(''), 'utilities', 'assets', 'fonts')
+    font_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'utilities', 'assets', 'fonts')
     pdf.add_font('Libertine', '', os.path.join(font_dir, "LinLibertine_Rah.ttf"), uni=True)
     pdf.set_font('Libertine','', 24)
 
@@ -275,7 +275,7 @@ def selected_plots(folder1,
                 plt.savefig(scatter_comp_path + 'pdf')
                 plt.savefig(scatter_comp_path + 'png', dpi=300)
                 plt.close()
-
+                
             # if not plot_2:
             #     axis = scatter_vs_property(data1.nfaces,
             #         "#faces",
@@ -320,6 +320,10 @@ def selected_plots(folder1,
         produce_scatter=produce_scatter)
     if remeshed:
         data1_hausdorff = [0. if x==None else x for x in data1.hausdorff_distance]
+        if data2:
+            data2_hausdorff = [0. if x==None else x for x in data2.hausdorff_distance]
+        else:
+            data2_hausdorff = None
         axis = hist(data1_hausdorff,
             name1,
             data2_hausdorff,
@@ -347,16 +351,37 @@ def selected_plots(folder1,
 def interesting_meshes(folder1,
     folder2,
     name1 = 'dataset 1',
-    name2 = 'dataset 2'):
+    name2 = 'dataset 2',
+    out_dir = '.'):
 
     #Read in the CSV files to create a namespace
     meshes1 = read_interesting_meshes_csv(os.path.join(folder1, "triangle_singular_values.csv"))
     meshes2 = None if folder2==None else read_interesting_meshes_csv(os.path.join(folder2, "triangle_singular_values.csv"))
-    if meshes2 != None:
-        assert len(meshes1) == len(meshes2)
-        for i1,i2 in zip(meshes1, meshes2):
-            assert i1.filename == i2.filename
-            assert i1.triangle_number == i2.triangle_number
+   
+    meshes1.sort(key = lambda m: m.filename)
+    
+    if meshes2 is not None:
+        meshes2.sort(key = lambda m: m.filename)
+        new_meshes1 = []
+        new_meshes2 = []
+        i = 0
+        j = 0
+        while i < len(meshes1) and j < len(meshes2):
+            if meshes1[i].filename == meshes2[j].filename:
+                if meshes1[i].triangle_number == meshes2[j].triangle_number:
+                    new_meshes1.append(meshes1[i])
+                    new_meshes2.append(meshes2[j])
+                i += 1
+                j += 1
+            elif meshes1[i].filename < meshes2[j].filename:
+                i += 1
+            else:
+                j += 1
+                
+        meshes1 = new_meshes1
+        meshes2 = new_meshes2
+        
+    assert len(new_meshes1) == len(new_meshes2)
 
     plt.rc('axes', titlesize=16)
     plt.rc('axes', labelsize=12)
@@ -374,39 +399,35 @@ def interesting_meshes(folder1,
     plt.rc('font', serif='Linux Libertine')
 
     def make_interesting_graph_for_prop(prop,
-        title,
-        plot_data2):
-        plot_2 = plot_data2 
-        if meshes2==None:
-            plot_2 = False
-
-            if plot_2:
-                for mesh1,mesh2 in zip(meshes1,meshes2):
-                    axis = scatter_comparison(getattr(mesh1, prop),
-                        name1,
-                        getattr(mesh2, prop),
-                        name2,
-                        title=title + f', {prop}')
-                    scatter_comp_path = os.path.join(out_dir, title + f'_{prop}_scatter_comp.')
-                    plt.savefig(scatter_comp_path + 'pdf')
-                    plt.savefig(scatter_comp_path + 'png', dpi=300)
-                    plt.close()
-            else:
-                for mesh1 in meshes1:
-                    axis = hist(getattr(mesh1, prop),
+        title):
+        plot_2 = (meshes2 is not None)
+        if plot_2:
+            for mesh1,mesh2 in zip(meshes1,meshes2):
+                axis = scatter_comparison(getattr(mesh1, prop),
                     name1,
-                    title=title + f', {prop}',
-                    comment='(failed parametrizations are ∞)',
-                    logx=True,
-                    zero_bin=False,
-                    inf_bin=True)
-                    hist_path = os.path.join(out_dir, title + f'_{prop}.')
-                    plt.savefig(hist_path + 'pdf')
-                    plt.savefig(hist_path + 'png', dpi=300)
-                    plt.close()
+                    getattr(mesh2, prop),
+                    name2,
+                    title=mesh1.filename + " " + title + ".")
+                scatter_comp_path = os.path.join(out_dir, mesh1.reason + " " + mesh1.filename + " " + title + ".")
+                plt.savefig(scatter_comp_path + 'pdf')
+                plt.savefig(scatter_comp_path + 'png', dpi=300)
+                plt.close()
+        else:
+            for mesh1 in meshes1:
+                axis = hist(getattr(mesh1, prop),
+                name1,
+                title=mesh1.filename + " " + title,
+                comment='(failed parametrizations are ∞)',
+                logx=True,
+                zero_bin=False,
+                inf_bin=True)
+                hist_path = os.path.join(out_dir, mesh1.reason + " " + mesh1.filename + " " + title + ".")
+                plt.savefig(hist_path + 'pdf')
+                plt.savefig(hist_path + 'png', dpi=300)
+                plt.close()
 
-    make_interesting_graph_for_prop('singular_value_1', 'Singular value 1')
-    make_interesting_graph_for_prop('singular_value_2', 'Singular value 2')
+    make_interesting_graph_for_prop('singular_value_1', 'Singular Value 1')
+    make_interesting_graph_for_prop('singular_value_2', 'Singular Value 2')
 
     return None
 
@@ -837,41 +858,45 @@ def read_csv(path):
 def read_interesting_meshes_csv(path):
 
     datas = []
-    current_filename = None
+    current_filename_reason = None
     read_first_row = False
     with open(path, newline='') as parsing:
         reader = csv.reader(parsing)
         for row in reader:
-            assert len(row) == 6
+            assert len(row) == 5
             if not read_first_row:
                 read_first_row = True
                 #Make sure all columns have the expected headers
-                assert row[1] == 'Filename'
-                assert row[2] == 'Triangle Number'
-                assert row[3] == 'Singular Value 1'
-                assert row[4] == 'Singular Value 2'
-                assert row[5] == 'Reason'
+                assert row[0] == 'Filename'
+                assert row[1] == 'Triangle Number'
+                assert row[2] == 'Singular Value 1'
+                assert row[3] == 'Singular Value 2'
+                assert row[4] == 'Reason'
             else:
                 #Given the namings above, put everything into
 
-                filename = row[1]
-                if filename != current_filename:
-                    current_filename = filename
+                filename = row[0]
+                reason = row[4]
+                if (filename, reason) != current_filename_reason:
+                    current_filename_reason = (filename, reason)
                     data = SimpleNamespace()
                     data.object_id = []
+                    current_object_id = 0
                     data.filename = filename
                     data.triangle_number = []
                     data.singular_value_1 = []
                     data.singular_value_2 = []
-                    data.reason = row[5]
+                    data.reason = reason
                     datas.append(data)
-
+                    
                 assert datas[-1].filename == filename
-                assert datas[-1].reason == row[5]
-                datas[-1].object_id.append(to_int(row[0]))
-                datas[-1].triangle_number.append(to_int(row[0]))
-                datas[-1].singular_value_1.append(to_float(row[0]))
-                datas[-1].singular_value_2.append(to_float(row[0]))
+                assert datas[-1].reason == row[4]
+                datas[-1].object_id.append(current_object_id)
+                datas[-1].triangle_number.append(to_int(row[1]))
+                datas[-1].singular_value_1.append(to_float(row[2]))
+                datas[-1].singular_value_2.append(to_float(row[3]))
+                
+                current_object_id += 1
 
     return datas
 
@@ -909,7 +934,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate report from benchmark")
     parser.add_argument("-b", "--benchmarks", type=str, required=True, nargs="+", dest="benchmark_folders", metavar="INPUT_FOLDER")
     parser.add_argument("-n", "--names", type=str, required=True, nargs="+", dest="names", metavar="NAME")
-    parser.add_argument("-s", "--scatter", type=bool, default=True, dest="scatter")
     parser.add_argument("-o", "--output", type=str, dest="output_folder", default="report_output")
     
     args = parser.parse_args()
@@ -935,7 +959,6 @@ if __name__ == "__main__":
     else:
         name1, name2 = names
         
-    produce_scatter = args.scatter
     output_folder = os.path.abspath(args.output_folder)
     
     if not os.path.exists(output_folder):
@@ -945,13 +968,15 @@ if __name__ == "__main__":
         os.mkdir(output_folder)
         
     plot_folder = os.path.join(output_folder, "plots")
+    interesting_meshes_folder = os.path.join(plot_folder, "interesting_meshes")
     os.mkdir(plot_folder)
+    os.mkdir(interesting_meshes_folder)
     
     data1, data2, remeshed = selected_plots(folder1=folder1, folder2=folder2, name1=name1, name2=name2, \
-                                  produce_scatter=produce_scatter, out_dir=plot_folder)
+                                  produce_scatter=True, out_dir=plot_folder)
 
-    interesting_meshes(folder1=folder1, folder2=folder2, name1=name1, name2=name2)
+    interesting_meshes(folder1=folder1, folder2=folder2, name1=name1, name2=name2, out_dir=interesting_meshes_folder)
     
     generate_report(data1=data1, data2=data2, folder1=folder1, folder2=folder2, 
-                    name1=name1, name2=name2, output_folder=output_folder, produce_scatter=produce_scatter,
+                    name1=name1, name2=name2, output_folder=output_folder, produce_scatter=True,
                     remeshed=remeshed)
