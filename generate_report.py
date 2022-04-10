@@ -17,7 +17,7 @@ import fpdf
 from fpdf import FPDF
 
 
-def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder, produce_scatter, remeshed=False):
+def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder, produce_scatter, remeshed=False, comp_artist=False):
     is_comparison = (data2 is not None)
     plot_folder = os.path.join(output_folder, "plots")
     
@@ -181,7 +181,8 @@ def selected_plots(folder1,
     name1='dataset 1',
     name2='dataset 2',
     produce_scatter=True,
-    out_dir='.'):
+    out_dir='.',
+    comp_artist=False):
     
     #Read in the CSV files to create a namespace
     data1 = read_csv(os.path.join(folder1, "distortion_characteristics.csv"))
@@ -352,7 +353,8 @@ def interesting_meshes(folder1,
     folder2,
     name1 = 'dataset 1',
     name2 = 'dataset 2',
-    out_dir = '.'):
+    out_dir = '.',
+    comp_artist=False):
 
     #Read in the CSV files to create a namespace
     meshes1 = read_interesting_meshes_csv(os.path.join(folder1, "triangle_singular_values.csv"))
@@ -381,7 +383,7 @@ def interesting_meshes(folder1,
         meshes1 = new_meshes1
         meshes2 = new_meshes2
         
-    assert len(new_meshes1) == len(new_meshes2)
+        assert len(meshes1) == len(meshes2)
 
     plt.rc('axes', titlesize=16)
     plt.rc('axes', labelsize=12)
@@ -935,6 +937,9 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--benchmarks", type=str, required=True, nargs="+", dest="benchmark_folders", metavar="INPUT_FOLDER")
     parser.add_argument("-n", "--names", type=str, required=True, nargs="+", dest="names", metavar="NAME")
     parser.add_argument("-o", "--output", type=str, dest="output_folder", default="report_output")
+    parser.add_argument("--force-no-comp", dest="force_no_comp", action="store_true")
+    
+    parser.set_defaults(force_no_comp=False)
     
     args = parser.parse_args()
     benchmark_folders = args.benchmark_folders
@@ -972,11 +977,23 @@ if __name__ == "__main__":
     os.mkdir(plot_folder)
     os.mkdir(interesting_meshes_folder)
     
-    data1, data2, remeshed = selected_plots(folder1=folder1, folder2=folder2, name1=name1, name2=name2, \
-                                  produce_scatter=True, out_dir=plot_folder)
+    if folder2 is not None or args.force_no_comp:
+        data1, data2, remeshed = selected_plots(folder1=folder1, folder2=folder2, name1=name1, name2=name2, \
+                                      produce_scatter=True, out_dir=plot_folder)
 
-    interesting_meshes(folder1=folder1, folder2=folder2, name1=name1, name2=name2, out_dir=interesting_meshes_folder)
-    
-    generate_report(data1=data1, data2=data2, folder1=folder1, folder2=folder2, 
-                    name1=name1, name2=name2, output_folder=output_folder, produce_scatter=True,
-                    remeshed=remeshed)
+        interesting_meshes(folder1=folder1, folder2=folder2, name1=name1, name2=name2, out_dir=interesting_meshes_folder)
+
+        generate_report(data1=data1, data2=data2, folder1=folder1, folder2=folder2, 
+                        name1=name1, name2=name2, output_folder=output_folder, produce_scatter=True,
+                        remeshed=remeshed)
+    else:
+        folder2 = os.path.join(folder1, "artist")
+        name2 = "Artist"
+        data1, data2, remeshed = selected_plots(folder1=folder2, folder2=folder1, name1=name2, name2=name1, \
+                                      produce_scatter=True, out_dir=plot_folder, comp_artist=True)
+
+        interesting_meshes(folder1=folder2, folder2=folder1, name1=name2, name2=name1, out_dir=interesting_meshes_folder, comp_artist=True)
+
+        generate_report(data1=data1, data2=data2, folder1=folder2, folder2=folder1, 
+                        name1=name2, name2=name1, output_folder=output_folder, produce_scatter=True,
+                        remeshed=remeshed, comp_artist=True)
