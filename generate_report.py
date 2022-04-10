@@ -171,6 +171,16 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
         pdf.image(os.path.join(plot_folder, "artist_area_match.png"), \
                   x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        
+    if not data1.cut:
+        pdf.add_page()
+        pdf.image(os.path.join(plot_folder, "mesh_cut_length.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+        pdf.image(os.path.join(plot_folder, "artist_mesh_cut_length_match.png"), \
+                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+        pdf.add_page()
+        pdf.image(os.path.join(plot_folder, "artist_uv_cut_length_match.png"), \
+                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
 
     
     interesting_mesh_files = sorted([(f,) + tuple(f.split("__")) for f in os.listdir(interesting_mesh_folder) \
@@ -368,11 +378,25 @@ def selected_plots(folder1,
         make_graphs_for_prop('artist_area_match',
             'How much worse is the area distortion compared to the artist?',
             produce_scatter=produce_scatter,
-            plot_data2=True)
+            plot_data2=not comp_artist)
         make_graphs_for_prop('artist_angle_match',
             'How much worse is the angle distortion compared to the artist?',
             produce_scatter=produce_scatter,
-            plot_data2=True)
+            plot_data2=not comp_artist)
+        
+    if not data1.cut:
+        make_graphs_for_prop('mesh_cut_length',
+                             'Cut length along mesh',
+                             produce_scatter=produce_scatter)
+        make_graphs_for_prop('artist_mesh_cut_length_match',
+                             'How much worse is the cut length along the mesh compared to the artist?',
+                             produce_scatter=produce_scatter,
+                             plot_data2=not comp_artist)
+        make_graphs_for_prop('artist_uv_cut_length_match',
+                             'How much worse is the cut length in UV space compared to the artist?',
+                             produce_scatter=produce_scatter,
+                             plot_data2=not comp_artist)
+            
     
     return data1, data2, remeshed
 
