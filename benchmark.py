@@ -65,7 +65,7 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
 
         mesh_modified=False
         if (v_i.shape != v_io.shape) or (f.shape != f_o.shape) or \
-        (not np.all(np.abs(v_i - v_io) <= 1e-8)) or (not np.all(f == f_o)):
+        (not np.all(np.abs(v_i - v_io) <= 1e-5)) or (not np.all(f == f_o)):
             mesh_modified = True
 
         if np.any(np.isnan(uv_i)):
@@ -129,7 +129,7 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
         else:
             artist_angle_match = np.nan
             artist_area_match = np.nan
-
+            
         if not mesh_modified:
             hausdorff_distance = 0
         else:
