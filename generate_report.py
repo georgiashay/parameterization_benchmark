@@ -1,5 +1,4 @@
 ## Script to generate a bunch of plots from the singular value CSV file.
-# Feel free to move this around to whatever folder you need, Georgia.
 
 import sys
 import os
