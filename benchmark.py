@@ -151,9 +151,7 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
 
             artist_cut_match_mesh = get_artist_cut_match_mesh(uv_to_v_arr_o, v_o, ftc_o_wnan, uv_to_v_arr, v, ftc_wnan)
 
-            artist_cut_match_uv = get_artist_cut_match_uv(uv_o, ftc_o_wnan, uv, ftc_wnan)
-
-            row += [mesh_cut_length, artist_cut_match_mesh, artist_cut_match_uv]
+            row += [mesh_cut_length, artist_cut_match_mesh]
 
         df_row = pd.DataFrame({ col: [row[i]] for i, col in enumerate(df_columns)})
         
@@ -216,7 +214,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
                   "Resolution", "Artist Area Match", "Artist Angle Match", "Hausdorff Distance", "Remeshed"]
     
     if not use_cut_dataset:
-        df_columns += ["Mesh Cut Length", "Artist Mesh Cut Length Match", "Artist UV Cut Length Match"]
+        df_columns += ["Mesh Cut Length", "Artist Mesh Cut Length Match"]
         
     df = pd.DataFrame(columns=df_columns)
     
