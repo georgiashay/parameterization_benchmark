@@ -1,7 +1,5 @@
 This file contains both the license of this software, as well as the licenses of bundled software/assets.
 
-TODO: Please choose a license that you like. I suggest the usual opensource ones like Apache.
-
 
 We publish this software under the Apache 2.0 license, reproduced below.
 
