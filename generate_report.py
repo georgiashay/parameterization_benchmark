@@ -15,12 +15,14 @@ import shutil
 import fpdf
 from fpdf import FPDF
 
+fpdf.set_global("FPDF_CACHE_MODE", 1)
+
 
 def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder, produce_scatter, remeshed=False, comp_artist=False):
     is_comparison = (data2 is not None)
     plot_folder = os.path.join(output_folder, "plots")
     interesting_mesh_folder = os.path.join(plot_folder, "interesting_meshes")
-    
+        
     pdf = FPDF(orientation="P", unit="pt", format="letter")
     pdf.add_page()
     
