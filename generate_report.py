@@ -548,7 +548,7 @@ def hist(data1,
     
     bar_width = 0.4
     zero_cutoff = 1e-8
-    smallestlognum = zero_cutoff
+    smallestlognum = 1e-1
     if percentx:
         inf_cutoff = 1.
     else:
