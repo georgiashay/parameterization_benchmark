@@ -759,7 +759,9 @@ def scatter_comparison(data1,
     logy=True,
     loghue=True,
     palette = 'plasma'):
-
+    
+    print(title)
+    
     assert all(x==None or x>=0 for x in data1)
     assert all(x==None or x>=0 for x in data2)
     if huedata!=None:
@@ -844,6 +846,7 @@ def scatter_comparison(data1,
         yscale='log' if logy else 'linear',
         xlabel=name1,
         ylabel=name2)
+    
     if logx:
         loglabels = np.logspace(math.log(min1,base), math.log(max1,base), num=nticks-1, endpoint=True, base=base)
         xticks = np.concatenate((loglabels, [inf1]))
@@ -862,6 +865,8 @@ def scatter_comparison(data1,
     axis.set_yticks(yticks,labels=yticklabels)
     axis.margins(x=0.005, y=0.02)
 
+    print(xticklabels)
+    print(yticklabels)
     bmin = max(min1,min2) if logx else 0.
     bmax = min(inf1,inf2)
     axis.plot([bmin, bmax], [bmin, bmax],
@@ -1093,11 +1098,11 @@ if __name__ == "__main__":
     else:
         folder2 = os.path.join(folder1, "artist")
         name2 = "Artist"
-        data1, data2, remeshed = selected_plots(folder1=folder2, folder2=folder1, name1=name2, name2=name1, \
+        data1, data2, remeshed = selected_plots(folder1=folder1, folder2=folder2, name1=name1, name2=name2, \
                                       produce_scatter=True, out_dir=plot_folder, comp_artist=True)
 
-        interesting_meshes(folder1=folder2, folder2=folder1, name1=name2, name2=name1, out_dir=interesting_meshes_folder, comp_artist=True)
+        interesting_meshes(folder1=folder1, folder2=folder2, name1=name1, name2=name2, out_dir=interesting_meshes_folder, comp_artist=True)
 
-        generate_report(data1=data1, data2=data2, folder1=folder2, folder2=folder1, 
-                        name1=name2, name2=name1, output_folder=output_folder, produce_scatter=True,
+        generate_report(data1=data1, data2=data2, folder1=folder1, folder2=folder2, 
+                        name1=name1, name2=name2, output_folder=output_folder, produce_scatter=True,
                         remeshed=remeshed, comp_artist=True)
