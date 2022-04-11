@@ -731,7 +731,9 @@ def scatter_comparison(data1,
     logy=True,
     loghue=True,
     palette = 'plasma'):
-        
+    
+    print(title)
+    
     assert all(x==None or x>=0 for x in data1)
     assert all(x==None or x>=0 for x in data2)
     if huedata!=None:
@@ -758,6 +760,10 @@ def scatter_comparison(data1,
     def handle_extremes(data,log):
         cmax = non_none_max(data)
         cmin = non_none_min(data)
+        if cmin==None:
+            cmin = smallestlognum
+        if cmax <= cmin + 1e-3:
+            cmax = cmin + 1e-3
         if log:
             smallest_tick = max(cmin, smallestlognum)
             inf_tick = base ** ((math.log(cmax,base)-math.log(smallest_tick,base))/nticks + math.log(cmax,base))
@@ -833,18 +839,32 @@ def scatter_comparison(data1,
         yticklabels = ["%.1e"%a for a in np.linspace(0, max2, num=nticks-1, endpoint=True)] + ["∞"]
     axis.set_xticks(xticks,labels=xticklabels)
     axis.set_yticks(yticks,labels=yticklabels)
+    axis.minorticks_off()
     axis.margins(x=0.005, y=0.02)
 
+    axlo = axis.get_ylim()[0]
+    axhi = axis.get_ylim()[1]
+
     bmin = max(min1,min2) if logx else 0.
-    bmax = min(inf1,inf2)
-    axis.plot([bmin, bmax], [bmin, bmax],
-        linestyle='dashed',
-        dashes=(10,5),
-        linewidth=0.5,
-        alpha=0.5,
-        color=(0.,0.,0.))
-    label = axis.text(bmax*0.9, bmax*0.9, 'x=y', horizontalalignment='right', fontstyle='italic')
-    label.set_bbox(dict(boxstyle="square,pad=0.2",facecolor=(1.,1.,1.,0.5),edgecolor=(0.,0.,0.,0.5)))
+    bmax = min(max1,max2)
+    if bmax > 1.2*bmin + 1e-4:
+        axis.plot([bmin, bmax], [bmin, bmax],
+            linestyle='dashed',
+            dashes=(10,5),
+            linewidth=0.5,
+            alpha=0.5,
+            color=(0.,0.,0.))
+        label = axis.text(bmax*0.95, bmax*0.95, 'x=y', horizontalalignment='right', fontstyle='italic')
+        label.set_bbox(dict(boxstyle="square,pad=0.2",facecolor=(1.,1.,1.,0.5),edgecolor=(0.,0.,0.,0.5)))
+
+    if axis.get_ylim()[0]>yticks[0]:
+        axis.set_ylim(bottom=yticks[0])
+    if axis.get_ylim()[1]<yticks[1]:
+        axis.set_ylim(top=yticks[1])
+    if axis.get_xlim()[0]>xticks[0]:
+        axis.set_xlim(left=xticks[0])
+    if axis.get_xlim()[1]<xticks[1]:
+        axis.set_xlim(right=xticks[1])
 
     return axis
 
