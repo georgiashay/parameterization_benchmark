@@ -72,19 +72,13 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         percent_flipped = 100. * np.array(data.proportion_flipped_triangles).astype(float)
         percent_flipped = without_nans(percent_flipped)
         
-        if remeshed:
-            hausdorff_distance = np.array(data.hausdorff_distance).astype(float)
-            hausdorff_distance = without_nans(hausdorff_distance)
-        else:
+        if not remeshed:
             artist_angle_match = np.array(data.artist_angle_match).astype(float)
             artist_angle_match = without_nans(artist_angle_match)
                     
             artist_area_match = np.array(data.artist_area_match).astype(float)
             artist_area_match = without_nans(artist_area_match)
-        
-        hausdorff_distance = np.array(data.hausdorff_distance).astype(float)
-        hausdorff_distance = without_nans(hausdorff_distance)
-        
+                
         if remeshed:
             stats1 = [
                 ("Avg Non-Inf Max Area Distortion", avg_non_inf_max_area_distortion),
@@ -92,7 +86,6 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
                 ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
                 ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
                 ("Avg Angle Error", np.mean(average_angle_error)),
-                ("Avg Hausdorff Distance", np.mean(hausdorff_distance)),
                 ("Proportion of Parameterization Failures", proportion_failures)
             ]
         else:
@@ -114,7 +107,7 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
             artist_mesh_cut_length_match = np.array(data.artist_mesh_cut_length_match).astype(float)
             artist_mesh_cut_length_match = without_nans(artist_mesh_cut_length_match)
             
-            stats1.append([
+            stats1.extend([
                 ("Avg Mesh Cut Length", np.mean(mesh_cut_length)),
                 ("Avg Artist Mesh Cut Length Match", np.mean(artist_mesh_cut_length_match))
             ])
@@ -125,7 +118,7 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
             
             magnitude = int(math.floor(math.log10(abs(x))))
             return round(x, -magnitude + n - 1)
-                    
+                
         pdf.set_x(0)
         pdf.set_y(100)
         pdf.set_font_size(9)
@@ -176,12 +169,9 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
                       x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
             pdf.image(os.path.join(plot_folder, "average_area_error.png"), \
                       x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
-        
-    pdf.add_page()
-    if remeshed:
-        pdf.image(os.path.join(plot_folder, "hausdorff_distance.png"), \
-                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-    else:
+
+    if not remeshed:
+        pdf.add_page()
         pdf.image(os.path.join(plot_folder, "artist_angle_match.png"), \
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
         pdf.image(os.path.join(plot_folder, "artist_area_match.png"), \
@@ -368,25 +358,7 @@ def selected_plots(folder1,
     make_graphs_for_prop('resolution',
         'Pixel resolution needed for display',
         produce_scatter=produce_scatter)
-    if remeshed:
-        data1_hausdorff = [0. if x==None else x for x in data1.hausdorff_distance]
-        if data2:
-            data2_hausdorff = [0. if x==None else x for x in data2.hausdorff_distance]
-        else:
-            data2_hausdorff = None
-        axis = hist(data1_hausdorff,
-            name1,
-            data2_hausdorff,
-            name2,
-            title='Hausdorff error introduced by remeshing',
-            comment='One of the methods remeshes the input surface. This plot documents the extent.',
-            logx=False,
-            inf_bin=True)
-        hausdorff_distance_path = os.path.join(out_dir, 'hausdorff_distance.')
-        plt.savefig(hausdorff_distance_path + 'pdf')
-        plt.savefig(hausdorff_distance_path + 'png', dpi=300)
-        plt.close()
-    else:
+    if not remeshed:
         make_graphs_for_prop('artist_area_match',
             'How much worse is the area distortion compared to the artist? (smaller is better)',
             produce_scatter=produce_scatter,
@@ -759,9 +731,7 @@ def scatter_comparison(data1,
     logy=True,
     loghue=True,
     palette = 'plasma'):
-    
-    print(title)
-    
+        
     assert all(x==None or x>=0 for x in data1)
     assert all(x==None or x>=0 for x in data2)
     if huedata!=None:
@@ -865,8 +835,6 @@ def scatter_comparison(data1,
     axis.set_yticks(yticks,labels=yticklabels)
     axis.margins(x=0.005, y=0.02)
 
-    print(xticklabels)
-    print(yticklabels)
     bmin = max(min1,min2) if logx else 0.
     bmax = min(inf1,inf2)
     axis.plot([bmin, bmax], [bmin, bmax],
@@ -900,7 +868,6 @@ def read_csv(path):
     data.resolution = []
     data.artist_area_match = []
     data.artist_angle_match = []
-    data.hausdorff_distance = []
     data.remeshed = []
     
     current_object_id = 0
@@ -910,7 +877,7 @@ def read_csv(path):
         reader = csv.reader(parsing)
         for row in reader:
             if not read_first_row:
-                assert len(row) == 15 or len(row) == 18
+                assert len(row) == 14 or len(row) == 16
                 read_first_row = True
                 #Make sure all columns have the expected headers
                 assert row[0] == 'Filename'
@@ -926,20 +893,19 @@ def read_csv(path):
                 assert row[10] == 'Resolution'
                 assert row[11] == 'Artist Area Match'
                 assert row[12] == 'Artist Angle Match'
-                assert row[13] == 'Hausdorff Distance'
-                assert row[14] == 'Remeshed'
+                assert row[13] == 'Remeshed'
                 
-                if len(row) == 18:
+                if len(row) == 16:
                     data.cut = False
-                    assert row[15] == "Mesh Cut Length"
-                    assert row[16] == "Artist Mesh Cut Length Match"
+                    assert row[14] == "Mesh Cut Length"
+                    assert row[15] == "Artist Mesh Cut Length Match"
                     data.mesh_cut_length = []
                     data.artist_mesh_cut_length_match = []
             else:
                 if data.cut:
-                    assert len(row) == 15
+                    assert len(row) == 14
                 else:
-                    assert len(row) == 18
+                    assert len(row) == 16
                 #Given the namings above, put everything into the correct array.
                 data.object_id.append(current_object_id)
                 data.filename.append(row[0])
@@ -955,14 +921,13 @@ def read_csv(path):
                 data.resolution.append(to_float(row[10]))
                 data.artist_area_match.append(to_float(row[11]))
                 data.artist_angle_match.append(to_float(row[12]))
-                data.hausdorff_distance.append(to_float(row[13]))
-                data.remeshed.append(to_bool(row[14]))
+                data.remeshed.append(to_bool(row[13]))
                 
                 current_object_id += 1
                 
                 if not data.cut:
-                    data.mesh_cut_length.append(to_float(row[15]))
-                    data.artist_mesh_cut_length_match.append(to_float(row[16]))
+                    data.mesh_cut_length.append(to_float(row[14]))
+                    data.artist_mesh_cut_length_match.append(to_float(row[15]))
 
     return data
 

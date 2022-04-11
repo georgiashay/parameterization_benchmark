@@ -129,17 +129,12 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
         else:
             artist_angle_match = np.nan
             artist_area_match = np.nan
-            
-        if not mesh_modified:
-            hausdorff_distance = 0
-        else:
-            hausdorff_distance = igl.hausdorff(v_io, f_o_wnan, v_i, f_wnan)
 
         row = [fname, len(f_wnan), len(v), max_area_distortion, total_area_distortion, \
               min_singular_value, max_singular_value, percent_flipped, \
               #overlap_area, 
               max_angle_distortion, total_angle_distortion, \
-              resolution, artist_area_match, artist_angle_match, hausdorff_distance, \
+              resolution, artist_area_match, artist_angle_match, \
               mesh_modified]
 
         if not use_cut_dataset:
@@ -211,7 +206,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
                   "Min Singular Value", "Max Singular Value", "Proportion Flipped Triangles", \
                   #"Bijectivity Violation Area", 
                   "Max Angle Distortion", "Average Angle Error", \
-                  "Resolution", "Artist Area Match", "Artist Angle Match", "Hausdorff Distance", "Remeshed"]
+                  "Resolution", "Artist Area Match", "Artist Angle Match", "Remeshed"]
     
     if not use_cut_dataset:
         df_columns += ["Mesh Cut Length", "Artist Mesh Cut Length Match"]
