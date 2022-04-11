@@ -53,6 +53,7 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         
         def without_nans(arr):
             return arr[np.where(np.logical_not(np.isnan(arr)))]
+        
 
         max_area_distortion = np.array(data.max_area_distortion).astype(float)
         max_area_distortion = without_nans(max_area_distortion)
@@ -63,6 +64,7 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         avg_non_inf_max_angle_distortion = np.mean(max_angle_distortion[np.where(np.logical_not(np.isinf(max_angle_distortion)))])
         
         average_area_error = np.array(data.average_area_error).astype(float)
+        proportion_failures = np.sum(np.isnan(average_area_error))/len(average_area_error)
         average_area_error = without_nans(average_area_error)
         
         average_angle_error = np.array(data.average_angle_error).astype(float)
@@ -91,7 +93,8 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
                 ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
                 ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
                 ("Avg Angle Error", np.mean(average_angle_error)),
-                ("Avg Hausdorff Distance", np.mean(hausdorff_distance))
+                ("Avg Hausdorff Distance", np.mean(hausdorff_distance)),
+                ("Proportion of Parameterization Failures", proportion_failures)
             ]
         else:
             stats1 = [
@@ -100,10 +103,23 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
                 ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
                 ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
                 ("Avg Angle Error", np.mean(average_angle_error)),
-                ("Avg Artist Area Match", np.mean(artist_area_match)),
-                ("Avg Artist Angle Match", np.mean(artist_angle_match))
+                ("Avg Artist Area Match (Smaller is better)", np.mean(artist_area_match)),
+                ("Avg Artist Angle Match (Smaller is better)", np.mean(artist_angle_match)),
+                ("Proportion of Parameterization Failures", proportion_failures)
             ]
-        
+            
+        if not data.cut:
+            mesh_cut_length = np.array(data.mesh_cut_length).astype(float)
+            mesh_cut_length = without_nans(mesh_cut_length)
+            
+            artist_mesh_cut_length_match = np.array(data.artist_mesh_cut_length_match).astype(float)
+            artist_mesh_cut_length_match = without_nans(artist_mesh_cut_length_match)
+            
+            stats1.append([
+                ("Avg Mesh Cut Length", np.mean(mesh_cut_length)),
+                ("Avg Artist Mesh Cut Length Match", np.mean(artist_mesh_cut_length_match))
+            ])
+         
         def n_sig_figs(x, n):
             if x == 0:
                 return 0
@@ -115,7 +131,7 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         pdf.set_y(100)
         pdf.set_font_size(9)
         pdf.write(9, "\n".join([stat[0] for stat in stats1]))
-        pdf.set_left_margin(pdf.l_margin + 140)
+        pdf.set_left_margin(pdf.l_margin + 160)
         pdf.set_x(0)
         pdf.set_y(100)
         pdf.write(9, "\n".join([str(n_sig_figs(stat[1], 6)) for stat in stats1]))
@@ -178,9 +194,6 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
         pdf.image(os.path.join(plot_folder, "artist_mesh_cut_length_match.png"), \
                   x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
-        pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "artist_uv_cut_length_match.png"), \
-                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
 
     
     interesting_mesh_files = sorted([(f,) + tuple(f.split("__")) for f in os.listdir(interesting_mesh_folder) \
@@ -376,11 +389,11 @@ def selected_plots(folder1,
         plt.close()
     else:
         make_graphs_for_prop('artist_area_match',
-            'How much worse is the area distortion compared to the artist?',
+            'How much worse is the area distortion compared to the artist? (smaller is better)',
             produce_scatter=produce_scatter,
             plot_data2=not comp_artist)
         make_graphs_for_prop('artist_angle_match',
-            'How much worse is the angle distortion compared to the artist?',
+            'How much worse is the angle distortion compared to the artist? (smaller is better)',
             produce_scatter=produce_scatter,
             plot_data2=not comp_artist)
         
@@ -389,11 +402,7 @@ def selected_plots(folder1,
                              'Cut length along mesh',
                              produce_scatter=produce_scatter)
         make_graphs_for_prop('artist_mesh_cut_length_match',
-                             'How much worse is the cut length along the mesh compared to the artist?',
-                             produce_scatter=produce_scatter,
-                             plot_data2=not comp_artist)
-        make_graphs_for_prop('artist_uv_cut_length_match',
-                             'How much worse is the cut length in UV space compared to the artist?',
+                             'How much worse is the cut length along the mesh compared to the artist? (smaller is better)',
                              produce_scatter=produce_scatter,
                              plot_data2=not comp_artist)
             
@@ -920,10 +929,8 @@ def read_csv(path):
                     data.cut = False
                     assert row[15] == "Mesh Cut Length"
                     assert row[16] == "Artist Mesh Cut Length Match"
-                    assert row[17] == "Artist UV Cut Length Match"
                     data.mesh_cut_length = []
                     data.artist_mesh_cut_length_match = []
-                    data.artist_uv_cut_length_match = []
             else:
                 if data.cut:
                     assert len(row) == 15
@@ -952,7 +959,6 @@ def read_csv(path):
                 if not data.cut:
                     data.mesh_cut_length.append(to_float(row[15]))
                     data.artist_mesh_cut_length_match.append(to_float(row[16]))
-                    data.artist_uv_cut_length_match.append(to_float(row[17]))
 
     return data
 
