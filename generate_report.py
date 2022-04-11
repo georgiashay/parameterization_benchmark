@@ -731,9 +731,7 @@ def scatter_comparison(data1,
     logy=True,
     loghue=True,
     palette = 'plasma'):
-    
-    print(title)
-    
+        
     assert all(x==None or x>=0 for x in data1)
     assert all(x==None or x>=0 for x in data2)
     if huedata!=None:
