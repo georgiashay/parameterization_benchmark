@@ -224,7 +224,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
             ofpath = os.path.join(dataset_subfolder, fname)
             fpath = os.path.join(measure_folder, fname)
             name, ext = os.path.splitext(fname)
-            if ext == ".obj" and not fname.endswith("_all.obj"):
+            if ext == ".obj":
                 tag_info = tag_df.loc[(cut_choice_folder, fname)]
 
                 meets_tag = True

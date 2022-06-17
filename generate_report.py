@@ -233,6 +233,7 @@ def selected_plots(folder1,
         assert data1.object_id == data2.object_id
         assert remeshed or data1.nfaces == data2.nfaces
         assert remeshed or data1.nvertices == data2.nvertices
+        assert data1.cut == data2.cut
 
 
     plt.rc('axes', titlesize=16)
@@ -251,7 +252,7 @@ def selected_plots(folder1,
     plt.rc('font', serif='Linux Libertine')
 
     #Percentage flipped triangles histogram
-    data1_flipped = [None if x==None else min(1.-x,x) for x in data1.proportion_flipped_triangles]
+    data1_flipped = data1.proportion_flipped_triangles
     if data2==None:
         axis = hist(data1_flipped,
             name1,
@@ -259,7 +260,7 @@ def selected_plots(folder1,
             comment='(reporting smaller of flipped and 100%-flipped, failed parametrizations are ∞)',
             percentx=True)
     else:
-        data2_flipped = [None if x==None else min(1.-x,x) for x in data2.proportion_flipped_triangles]
+        data2_flipped = data2.proportion_flipped_triangles
         axis = hist(data1_flipped,
             name1,
             data2_flipped,
@@ -277,9 +278,7 @@ def selected_plots(folder1,
         produce_scatter=True,
         plot_data2=True):
 
-        plot_2 = plot_data2 
-        if data2==None:
-            plot_2 = False
+        plot_2 = plot_data2 if data2 is not None else False
 
         if plot_2:
             axis = hist(getattr(data1, prop),
@@ -317,26 +316,6 @@ def selected_plots(folder1,
                 plt.savefig(scatter_comp_path + 'pdf')
                 plt.savefig(scatter_comp_path + 'png', dpi=300)
                 plt.close()
-                
-            # if not plot_2:
-            #     axis = scatter_vs_property(data1.nfaces,
-            #         "#faces",
-            #         getattr(data1, prop),
-            #         name1,
-            #         title=title)
-            # else:
-            #     axis = scatter_vs_property(data1.nfaces,
-            #         "#faces",
-            #         getattr(data1, prop),
-            #         name1,
-            #         getattr(data2, prop),
-            #         name2,
-            #         title=title)
-            # scatter_path = os.path.join(out_dir, f'{prop}_scatter.')
-            # plt.savefig(scatter_path + 'pdf')
-            # plt.savefig(scatter_path + 'svg')
-            # plt.close()
-
 
     #Make plots for all properties
     make_graphs_for_prop('max_angle_distortion',
@@ -588,14 +567,18 @@ def hist(data1,
             zerobins1 = [zerooffset]
             zeroheights1 = handle_logheights([len(zeros1)])
         else:
+            # Move further to left for double bars
             zerobins1 = [zerooffset - bar_width/2]
             zeroheights1 = handle_logheights([len(zeros1)])
+            # Place second bar to the right of first bar
             zerobins2 = [zerooffset + bar_width/2]
             zeroheights2 = handle_logheights([len(zeros2)])
 
+        # Label 0 bin at appropriate x-axis coord
         labelcoords.append(zerooffset)
         labeltexts.append("0%" if percentx else "0")
 
+        # Plot the 0 bars
         axis.bar(zerobins1,
             zeroheights1,
             color=plt.cm.get_cmap(palette).colors[0],
@@ -610,44 +593,55 @@ def hist(data1,
     if data2==None:
         bins1 = [x for x in range(1,rnbins+1)]
         if logx:
+            # Always start the logspace at 0 to show how far you are from perfect
             histbins = np.logspace(np.log10(zero_cutoff),
                 np.log10(plotmax),
                 num=rnbins+1,
                 endpoint=True)
         else:
+            # Always start the linpace at 0 to show how far you are from perfect
             histbins = np.linspace(zero_cutoff,
                 plotmax,
                 num=rnbins+1,
                 endpoint=True)
         hist1,edges1 = np.histogram(mids1, bins=histbins)
-        heights1 = handle_logheights([x for x in hist1])
+        heights1 = handle_logheights(hist1.tolist())
     else:
+        # Set up where the bar pairs are in plot x-space
         bins1 = [x - bar_width/2 for x in range(1,rnbins+1)]
         bins2 = [x + bar_width/2 for x in range(1,rnbins+1)]
         if logx:
+            # Always start the logspace at 0 to show how far you are from perfect
             histbins = np.logspace(np.log10(zero_cutoff),
                 np.log10(plotmax),
                 num=rnbins+1,
                 endpoint=True)
         else:
+            # Always start the linpace at 0 to show how far you are from perfect
             histbins = np.linspace(zero_cutoff,
                 plotmax,
                 num=rnbins+1,
                 endpoint=True)
         hist1,edges1 = np.histogram(mids1, bins=histbins)
-        heights1 = handle_logheights([x for x in hist1])
+        heights1 = handle_logheights(hist1.tolist())
         hist2,edges2 = np.histogram(mids2, bins=histbins)
-        heights2 = handle_logheights([x for x in hist2])
+        heights2 = handle_logheights(hist2.tolist())
         assert np.linalg.norm(edges1 - edges2) < 1e-8
+        
+    # Label left and right hand side of each bar pair
     labelcoords += [x for x in np.linspace(0.5, rnbins+0.5, num=rnbins+1)]
     if percentx:
         if logx or plotmax<0.05:
+            # Use scientific notation
             labeltexts += [">0%" if zero_bin else "0%"] + ["%.1e%%"%(x*100.) for x in edges1[1:]]
         else:
+            # Do not use scientific notation
             labeltexts += [">0%" if zero_bin else "0%"] + ["{0:.0%}".format(x) for x in edges1[1:]]
     else:
+        # Not percentages, use scientific notation
         labeltexts += [">0" if zero_bin else "0"] + ["%.1e"%x for x in edges1[1:]]
 
+    # Plot our middle bars
     bar1 = axis.bar(bins1,
         heights1,
         color=plt.cm.get_cmap(palette).colors[0],
@@ -673,6 +667,7 @@ def hist(data1,
         labelcoords.append(infoffset)
         labeltexts.append("∞")
 
+        # Plot the infinity bars
         axis.bar(infbins1,
             infheights1,
             color=plt.cm.get_cmap(palette).colors[0],
@@ -690,15 +685,16 @@ def hist(data1,
         axis.legend([bar1,bar2],[name1,name2], loc='upper center')
 
     #Draw dotted lines
-    axlo = axis.get_ylim()[0]
-    axhi = axis.get_ylim()[1]
+    axlo, axhi = axis.get_ylim()
     if zero_bin:
+        # Draw from next to zero bin, a line from axlo to axhi (always draw some line even if axhi is low)
         axis.plot([0.5*(zerooffset+1.), 0.5*(zerooffset+1.)], [axlo,max(2.*axlo,1.2*axhi)],
             linestyle='dashed',
             dashes=(10,5),
             linewidth=0.5,
             color=(0.2,0.2,0.2))
     if inf_bin:
+        # Draw from next to inf bin, a line from axlo to axhi (always draw some line even if axhi is low)
         axis.plot([0.5*(infoffset+rnbins), 0.5*(infoffset+rnbins)], [axlo,max(2.*axlo,1.2*axhi)],
             linestyle='dashed',
             dashes=(10,5),
@@ -748,7 +744,8 @@ def scatter_comparison(data1,
                     if x>m:
                         m = x
         return m
-    def non_none_min(data):
+    def non_none_f
+    data):
         m = math.inf
         for x in data:
             if x != None:
@@ -763,17 +760,21 @@ def scatter_comparison(data1,
         if cmin==None:
             cmin = smallestlognum
         if cmax <= cmin + 1e-3:
+            # Must be at least some small diff between max and min
             cmax = cmin + 1e-3
         if log:
             smallest_tick = max(cmin, smallestlognum)
+            # Add inf tick one tick to the right of maximum number
             inf_tick = base ** ((math.log(cmax,base)-math.log(smallest_tick,base))/nticks + math.log(cmax,base))
         else:
+            # Add inf tick one tick to the right of maximum number
             inf_tick = cmax*(1. + 1./nticks)
         lo = [x for x in data if x<math.inf]
         hi = [inf_tick for x in data if x==math.inf]
         data = lo + hi
         if log:
             if smallestlognum > cmin:
+                # If smallest number is really small, label as 0 and clamp plot to start at smallestlognum
                 minlabel = 0
                 cmin = smallestlognum
             else:
@@ -793,6 +794,7 @@ def scatter_comparison(data1,
     plt.figure(figsize=(10,4), tight_layout=True)
     axis = plt.gca()
     if huedata == None:
+        # No hue data provided, normal scatter
         axis.scatter(to_plot1,
             to_plot2,
             s=3.,
@@ -802,6 +804,7 @@ def scatter_comparison(data1,
         max_hue = max(huedata)
         min_hue = min(huedata)
         if(loghue):
+            # Clamp to minimum log number
             min_hue = max(smallestlognum,min_hue)
             normalizer = matplotlib.colors.SymLogNorm(linthresh=smallestlognum, vmin=min_hue, vmax=max_hue, base=base, clip=False)
         else:
@@ -823,6 +826,7 @@ def scatter_comparison(data1,
         xlabel=name1,
         ylabel=name2)
     
+    # Set up labels and coords for both axes
     if logx:
         loglabels = np.logspace(math.log(min1,base), math.log(max1,base), num=nticks-1, endpoint=True, base=base)
         xticks = np.concatenate((loglabels, [inf1]))
@@ -840,6 +844,7 @@ def scatter_comparison(data1,
     axis.set_xticks(xticks,labels=xticklabels)
     axis.set_yticks(yticks,labels=yticklabels)
     axis.minorticks_off()
+    # Margins scales to the data range provided, will delete bins with no data.
     axis.margins(x=0.005, y=0.02)
 
     axlo = axis.get_ylim()[0]
@@ -857,6 +862,7 @@ def scatter_comparison(data1,
         label = axis.text(bmax*0.95, bmax*0.95, 'x=y', horizontalalignment='right', fontstyle='italic')
         label.set_bbox(dict(boxstyle="square,pad=0.2",facecolor=(1.,1.,1.,0.5),edgecolor=(0.,0.,0.,0.5)))
 
+    # Undo auto scaling
     if axis.get_ylim()[0]>yticks[0]:
         axis.set_ylim(bottom=yticks[0])
     if axis.get_ylim()[1]<yticks[1]:
