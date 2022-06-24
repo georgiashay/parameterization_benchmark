@@ -148,10 +148,12 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
     if produce_scatter:
         pdf.add_page()
         if is_comparison:
+            pdf.image(os.path.join(plot_folder, "symmetric_dirichlet_energy_comp.png"), \
+                      x=28.35, y=30, w=555.3, h = 222.12, type = '', link = '')
             pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.png"), \
-                      x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+                      x=28.35, y=255, w=555.3, h = 222.12, type = '', link = '')
             pdf.image(os.path.join(plot_folder, "average_angle_error_scatter_comp.png"), \
-                      x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+                      x=28.35, y=480, w=555.3, h = 222.12, type = '', link = '')
             
             pdf.add_page()
             pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter_comp.png"), \
@@ -159,10 +161,12 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
             pdf.image(os.path.join(plot_folder, "average_area_error_scatter_comp.png"), \
                       x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
         else:
-            pdf.image(os.path.join(plot_folder, "max_angle_distortion.png"), \
-                      x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-            pdf.image(os.path.join(plot_folder, "average_angle_error.png"), \
-                      x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+            pdf.image(os.path.join(plot_folder, "symmetric_dirichlet_energy.png"), \
+                      x=28.35, y=30, w=555.3, h = 222.12, type = '', link = '')
+            pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter.png"), \
+                      x=28.35, y=255, w=555.3, h = 222.12, type = '', link = '')
+            pdf.image(os.path.join(plot_folder, "average_angle_error_scatter.png"), \
+                      x=28.35, y=480, w=555.3, h = 222.12, type = '', link = '')
             
             pdf.add_page()
             pdf.image(os.path.join(plot_folder, "max_area_distortion.png"), \
@@ -357,6 +361,9 @@ def selected_plots(folder1,
         produce_scatter=produce_scatter)
     make_graphs_for_prop('resolution',
         'Pixel resolution needed for display',
+        produce_scatter=produce_scatter)
+    make_graphs_for_prop('symmetric_dirichlet_energy',
+        'Symmetric Dirichlet Energy',
         produce_scatter=produce_scatter)
     if not remeshed:
         make_graphs_for_prop('artist_area_match',
@@ -889,6 +896,7 @@ def read_csv(path):
     data.artist_area_match = []
     data.artist_angle_match = []
     data.remeshed = []
+    data.symmetric_dirichlet_energy = []
     
     current_object_id = 0
 
@@ -897,7 +905,7 @@ def read_csv(path):
         reader = csv.reader(parsing)
         for row in reader:
             if not read_first_row:
-                assert len(row) == 14 or len(row) == 16
+                assert len(row) == 15 or len(row) == 17
                 read_first_row = True
                 #Make sure all columns have the expected headers
                 assert row[0] == 'Filename'
@@ -914,18 +922,19 @@ def read_csv(path):
                 assert row[11] == 'Artist Area Match'
                 assert row[12] == 'Artist Angle Match'
                 assert row[13] == 'Remeshed'
+                assert row[14] == 'Symmetric Dirichlet Energy'
                 
-                if len(row) == 16:
+                if len(row) == 17:
                     data.cut = False
-                    assert row[14] == "Mesh Cut Length"
-                    assert row[15] == "Artist Mesh Cut Length Match"
+                    assert row[15] == "Mesh Cut Length"
+                    assert row[16] == "Artist Mesh Cut Length Match"
                     data.mesh_cut_length = []
                     data.artist_mesh_cut_length_match = []
             else:
                 if data.cut:
-                    assert len(row) == 14
+                    assert len(row) == 15
                 else:
-                    assert len(row) == 16
+                    assert len(row) == 17
                 #Given the namings above, put everything into the correct array.
                 data.object_id.append(current_object_id)
                 data.filename.append(row[0])
@@ -942,12 +951,13 @@ def read_csv(path):
                 data.artist_area_match.append(to_float(row[11]))
                 data.artist_angle_match.append(to_float(row[12]))
                 data.remeshed.append(to_bool(row[13]))
+                data.symmetric_dirichlet_energy.append(to_float(row[14]))
                 
                 current_object_id += 1
                 
                 if not data.cut:
-                    data.mesh_cut_length.append(to_float(row[14]))
-                    data.artist_mesh_cut_length_match.append(to_float(row[15]))
+                    data.mesh_cut_length.append(to_float(row[15]))
+                    data.artist_mesh_cut_length_match.append(to_float(row[16]))
 
     return data
 

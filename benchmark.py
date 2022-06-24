@@ -17,6 +17,7 @@ from utilities.singular_values import get_singular_values
 from utilities.flipped import get_flipped
 from utilities.angle_distortion import get_angle_distortion
 from utilities.overlap_area import get_overlap_area
+from utilities.symmetric_dirichlet_energy import symmetric_dirichlet_energy
 from utilities.resolution import get_resolution
 from utilities.artist_match_area import get_artist_area_match
 from utilities.artist_match_angle import get_artist_angle_match
@@ -109,6 +110,8 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
 
         singular_values, min_singular_value, max_singular_value = get_singular_values(J)
         singular_values_o, _, _ = get_singular_values(J_o)
+
+        symmetric_dirichlet_energy = symmetric_dirichlet_energy(singular_values, 0.5*igl.doublearea(v,f))
         
         nan_faces_insert_locs = [face - i for i, face in enumerate(sorted(nan_faces))]
         singular_values_wnan = np.insert(singular_values, nan_faces_insert_locs, values=np.nan, axis=0)
@@ -135,7 +138,8 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
               #overlap_area, 
               max_angle_distortion, total_angle_distortion, \
               resolution, artist_area_match, artist_angle_match, \
-              mesh_modified]
+              mesh_modified, \
+              symmetric_dirichlet_energy]
 
         if not use_cut_dataset:
             # Use original faces for this metric due to dangling UV verts
@@ -206,7 +210,8 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
                   "Min Singular Value", "Max Singular Value", "Proportion Flipped Triangles", \
                   #"Bijectivity Violation Area", 
                   "Max Angle Distortion", "Average Angle Error", \
-                  "Resolution", "Artist Area Match", "Artist Angle Match", "Remeshed"]
+                  "Resolution", "Artist Area Match", "Artist Angle Match", "Remeshed", \
+                  "Symmetric Dirichlet Energy"]
     
     if not use_cut_dataset:
         df_columns += ["Mesh Cut Length", "Artist Mesh Cut Length Match"]
