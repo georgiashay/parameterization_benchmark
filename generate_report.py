@@ -64,12 +64,12 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         max_angle_distortion = without_nans(max_angle_distortion)
         avg_non_inf_max_angle_distortion = np.mean(max_angle_distortion[np.where(np.logical_not(np.isinf(max_angle_distortion)))])
         
-        average_area_error = np.array(data.average_area_error).astype(float)
-        proportion_failures = np.sum(np.isnan(average_area_error))/len(average_area_error)
-        average_area_error = without_nans(average_area_error)
+        average_area_discrepancy = np.array(data.average_area_discrepancy).astype(float)
+        proportion_failures = np.sum(np.isnan(average_area_discrepancy))/len(average_area_discrepancy)
+        average_area_discrepancy = without_nans(average_area_discrepancy)
         
-        average_angle_error = np.array(data.average_angle_error).astype(float)
-        average_angle_error = without_nans(average_angle_error)
+        average_angle_discrepancy = np.array(data.average_angle_discrepancy).astype(float)
+        average_angle_discrepancy = without_nans(average_angle_discrepancy)
         
         percent_flipped = 100. * np.array(data.proportion_flipped_triangles).astype(float)
         percent_flipped = without_nans(percent_flipped)
@@ -84,19 +84,19 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         if remeshed:
             stats1 = [
                 ("Avg Non-Inf Max Area Distortion", avg_non_inf_max_area_distortion),
-                ("Avg Area Error", np.mean(average_area_error)),
+                ("Avg Area Discrepancy", np.mean(average_area_discrepancy)),
                 ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
                 ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
-                ("Avg Angle Error", np.mean(average_angle_error)),
+                ("Avg Angle Error", np.mean(average_angle_discrepancy)),
                 ("Proportion of Parameterization Failures", proportion_failures)
             ]
         else:
             stats1 = [
                 ("Avg Non-Inf Max Area Distortion", avg_non_inf_max_area_distortion),
-                ("Avg Area Error", np.mean(average_area_error)),
+                ("Avg Area Discrepancy", np.mean(average_area_discrepancy)),
                 ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
                 ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
-                ("Avg Angle Error", np.mean(average_angle_error)),
+                ("Avg Angle Discrepancy", np.mean(average_angle_discrepancy)),
                 ("Avg Artist Area Match (Smaller is better)", np.mean(artist_area_match)),
                 ("Avg Artist Angle Match (Smaller is better)", np.mean(artist_angle_match)),
                 ("Proportion of Parameterization Failures", proportion_failures)
@@ -154,26 +154,26 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
                       x=28.35, y=30, w=555.3, h = 222.12, type = '', link = '')
             pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.png"), \
                       x=28.35, y=255, w=555.3, h = 222.12, type = '', link = '')
-            pdf.image(os.path.join(plot_folder, "average_angle_error_scatter_comp.png"), \
+            pdf.image(os.path.join(plot_folder, "average_angle_discrepancy_scatter_comp.png"), \
                       x=28.35, y=480, w=555.3, h = 222.12, type = '', link = '')
             
             pdf.add_page()
             pdf.image(os.path.join(plot_folder, "max_area_distortion_scatter_comp.png"), \
                       x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-            pdf.image(os.path.join(plot_folder, "average_area_error_scatter_comp.png"), \
+            pdf.image(os.path.join(plot_folder, "average_area_discrepancy_scatter_comp.png"), \
                       x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
         else:
             pdf.image(os.path.join(plot_folder, "symmetric_dirichlet_energy.png"), \
                       x=28.35, y=30, w=555.3, h = 222.12, type = '', link = '')
             pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter.png"), \
                       x=28.35, y=255, w=555.3, h = 222.12, type = '', link = '')
-            pdf.image(os.path.join(plot_folder, "average_angle_error_scatter.png"), \
+            pdf.image(os.path.join(plot_folder, "average_angle_discrepancy_scatter.png"), \
                       x=28.35, y=480, w=555.3, h = 222.12, type = '', link = '')
             
             pdf.add_page()
             pdf.image(os.path.join(plot_folder, "max_area_distortion.png"), \
                       x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-            pdf.image(os.path.join(plot_folder, "average_area_error.png"), \
+            pdf.image(os.path.join(plot_folder, "average_area_discrepancy.png"), \
                       x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
 
     if not remeshed:
@@ -325,14 +325,14 @@ def selected_plots(folder1,
     make_graphs_for_prop('max_angle_distortion',
         'Maximal angle distortion',
         produce_scatter=produce_scatter)
-    make_graphs_for_prop('average_angle_error',
-        'Average angle error',
+    make_graphs_for_prop('average_angle_discrepancy',
+        'Average angle discrepancy',
         produce_scatter=produce_scatter)
     make_graphs_for_prop('max_area_distortion',
         'Maximal area distortion',
         produce_scatter=produce_scatter)
-    make_graphs_for_prop('average_area_error',
-        'Average area error',
+    make_graphs_for_prop('average_area_discrepancy',
+        'Average area discrepancy',
         produce_scatter=produce_scatter)
     make_graphs_for_prop('min_singular_value',
         'Min. singular value',
@@ -892,12 +892,12 @@ def read_csv(path):
     data.nvertices = []
     data.filename = []
     data.max_area_distortion = []
-    data.average_area_error = []
+    data.average_area_discrepancy = []
     data.min_singular_value = []
     data.max_singular_value = []
     data.proportion_flipped_triangles = []
     data.max_angle_distortion = []
-    data.average_angle_error = []
+    data.average_angle_discrepancy = []
     data.resolution = []
     data.artist_area_match = []
     data.artist_angle_match = []
@@ -918,12 +918,12 @@ def read_csv(path):
                 assert row[1] == 'Faces'
                 assert row[2] == 'Vertices'
                 assert row[3] == 'Max Area Distortion'
-                assert row[4] == 'Average Area Error'
+                assert row[4] == 'Average Area Discrepancy'
                 assert row[5] == 'Min Singular Value'
                 assert row[6] == 'Max Singular Value'
                 assert row[7] == 'Proportion Flipped Triangles'
                 assert row[8] == 'Max Angle Distortion'
-                assert row[9] == 'Average Angle Error'
+                assert row[9] == 'Average Angle Discrepancy'
                 assert row[10] == 'Resolution'
                 assert row[11] == 'Artist Area Match'
                 assert row[12] == 'Artist Angle Match'
@@ -947,12 +947,12 @@ def read_csv(path):
                 data.nfaces.append(to_int(row[1]))
                 data.nvertices.append(to_int(row[2]))
                 data.max_area_distortion.append(to_float(row[3]))
-                data.average_area_error.append(to_float(row[4]))
+                data.average_area_discrepancy.append(to_float(row[4]))
                 data.min_singular_value.append(to_float(row[5]))
                 data.max_singular_value.append(to_float(row[6]))
                 data.proportion_flipped_triangles.append(to_float(row[7]))
                 data.max_angle_distortion.append(to_float(row[8]))
-                data.average_angle_error.append(to_float(row[9]))
+                data.average_angle_discrepancy.append(to_float(row[9]))
                 data.resolution.append(to_float(row[10]))
                 data.artist_area_match.append(to_float(row[11]))
                 data.artist_angle_match.append(to_float(row[12]))

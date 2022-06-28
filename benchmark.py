@@ -206,10 +206,10 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
             continue
         interesting_meshes.append((fname, "Handpicked"))
     
-    df_columns = ["Filename", "Faces", "Vertices", "Max Area Distortion", "Average Area Error", \
+    df_columns = ["Filename", "Faces", "Vertices", "Max Area Distortion", "Average Area Discrepancy", \
                   "Min Singular Value", "Max Singular Value", "Proportion Flipped Triangles", \
                   #"Bijectivity Violation Area", 
-                  "Max Angle Distortion", "Average Angle Error", \
+                  "Max Angle Distortion", "Average Angle Discrepancy", \
                   "Resolution", "Artist Area Match", "Artist Angle Match", "Remeshed", \
                   "Symmetric Dirichlet Energy"]
     
@@ -255,7 +255,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
             if tri_df_rows is not None:
                 tri_df_sets[fname] = tri_df_rows
                 
-    interesting_maxes = ["Artist Area Match", "Artist Angle Match", "Average Area Error", "Average Angle Error", \
+    interesting_maxes = ["Artist Area Match", "Artist Angle Match", "Average Area Discrepancy", "Average Angle Discrepancy", \
                         "Proportion Flipped Triangles"]
     
     additional_interesting_meshes = [
