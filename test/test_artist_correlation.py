@@ -20,6 +20,6 @@ def test_artist_match_angle_self_comparison():
         _, _, f, ftc, v, uv, mesh_areas, uv_areas = preprocess(fpath)
         J, _ = get_jacobian(v, f, uv, ftc)
         singular_values, _, _ = get_singular_values(J)
-        rho = get_artist_angle_match(rho, rho, mesh_areas)
+        rho = get_artist_correlation(singular_values, singular_values, mesh_areas)
      
         assert rho == pytest.approx(0.)
