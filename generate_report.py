@@ -75,11 +75,8 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
         percent_flipped = without_nans(percent_flipped)
         
         if not remeshed:
-            artist_angle_match = np.array(data.artist_angle_match).astype(float)
-            artist_angle_match = without_nans(artist_angle_match)
-                    
-            artist_area_match = np.array(data.artist_area_match).astype(float)
-            artist_area_match = without_nans(artist_area_match)
+            artist_correlation = np.array(data.artist_correlation).astype(float)
+            artist_correlation = without_nans(artist_correlation)
                 
         if remeshed:
             stats1 = [
@@ -97,8 +94,7 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
                 ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
                 ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
                 ("Avg Angle Discrepancy", np.mean(average_angle_discrepancy)),
-                ("Avg Artist Area Match (Smaller is better)", np.mean(artist_area_match)),
-                ("Avg Artist Angle Match (Smaller is better)", np.mean(artist_angle_match)),
+                ("Avg Artist Correlation (smaller = more correlated)", np.mean(artist_correlation)),
                 ("Proportion of Parameterization Failures", proportion_failures)
             ]
             
@@ -178,10 +174,8 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
 
     if not remeshed:
         pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "artist_angle_match.png"), \
+        pdf.image(os.path.join(plot_folder, "artist_correlation.png"), \
                   x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
-        pdf.image(os.path.join(plot_folder, "artist_area_match.png"), \
-                  x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
         
     if not data1.cut:
         pdf.add_page()
@@ -347,12 +341,8 @@ def selected_plots(folder1,
         'Symmetric Dirichlet Energy',
         produce_scatter=produce_scatter)
     if not remeshed:
-        make_graphs_for_prop('artist_area_match',
-            'How much worse is the area distortion compared to the artist? (smaller is better)',
-            produce_scatter=produce_scatter,
-            plot_data2=not comp_artist)
-        make_graphs_for_prop('artist_angle_match',
-            'How much worse is the angle distortion compared to the artist? (smaller is better)',
+        make_graphs_for_prop('artist_correlation',
+            'How much does per-triangle distortion correlate to the artist? (smaller is more correlated)',
             produce_scatter=produce_scatter,
             plot_data2=not comp_artist)
         
@@ -899,8 +889,7 @@ def read_csv(path):
     data.max_angle_distortion = []
     data.average_angle_discrepancy = []
     data.resolution = []
-    data.artist_area_match = []
-    data.artist_angle_match = []
+    data.artist_correlation = []
     data.remeshed = []
     data.symmetric_dirichlet_energy = []
     
@@ -911,7 +900,7 @@ def read_csv(path):
         reader = csv.reader(parsing)
         for row in reader:
             if not read_first_row:
-                assert len(row) == 15 or len(row) == 17
+                assert len(row) == 14 or len(row) == 16
                 read_first_row = True
                 #Make sure all columns have the expected headers
                 assert row[0] == 'Filename'
@@ -925,22 +914,21 @@ def read_csv(path):
                 assert row[8] == 'Max Angle Distortion'
                 assert row[9] == 'Average Angle Discrepancy'
                 assert row[10] == 'Resolution'
-                assert row[11] == 'Artist Area Match'
-                assert row[12] == 'Artist Angle Match'
-                assert row[13] == 'Remeshed'
-                assert row[14] == 'Symmetric Dirichlet Energy'
+                assert row[11] == 'Artist Correlation'
+                assert row[12] == 'Remeshed'
+                assert row[13] == 'Symmetric Dirichlet Energy'
                 
-                if len(row) == 17:
+                if len(row) == 16:
                     data.cut = False
-                    assert row[15] == "Mesh Cut Length"
-                    assert row[16] == "Artist Mesh Cut Length Match"
+                    assert row[14] == "Mesh Cut Length"
+                    assert row[15] == "Artist Mesh Cut Length Match"
                     data.mesh_cut_length = []
                     data.artist_mesh_cut_length_match = []
             else:
                 if data.cut:
-                    assert len(row) == 15
+                    assert len(row) == 14
                 else:
-                    assert len(row) == 17
+                    assert len(row) == 16
                 #Given the namings above, put everything into the correct array.
                 data.object_id.append(current_object_id)
                 data.filename.append(row[0])
@@ -954,16 +942,15 @@ def read_csv(path):
                 data.max_angle_distortion.append(to_float(row[8]))
                 data.average_angle_discrepancy.append(to_float(row[9]))
                 data.resolution.append(to_float(row[10]))
-                data.artist_area_match.append(to_float(row[11]))
-                data.artist_angle_match.append(to_float(row[12]))
-                data.remeshed.append(to_bool(row[13]))
-                data.symmetric_dirichlet_energy.append(to_float(row[14]))
+                data.artist_correlation.append(to_float(row[11]))
+                data.remeshed.append(to_bool(row[12]))
+                data.symmetric_dirichlet_energy.append(to_float(row[13]))
                 
                 current_object_id += 1
                 
                 if not data.cut:
-                    data.mesh_cut_length.append(to_float(row[15]))
-                    data.artist_mesh_cut_length_match.append(to_float(row[16]))
+                    data.mesh_cut_length.append(to_float(row[14]))
+                    data.artist_mesh_cut_length_match.append(to_float(row[15]))
 
     return data
 

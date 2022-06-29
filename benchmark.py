@@ -19,8 +19,7 @@ from utilities.angle_distortion import get_angle_distortion
 from utilities.overlap_area import get_overlap_area
 from utilities.symmetric_dirichlet_energy import symmetric_dirichlet_energy
 from utilities.resolution import get_resolution
-from utilities.artist_match_area import get_artist_area_match
-from utilities.artist_match_angle import get_artist_angle_match
+from utilities.artist_correlation import get_artist_artist_correlation
 from utilities.mesh_cut_length import get_mesh_cut_length
 from utilities.artist_cut_match_mesh import get_artist_cut_match_mesh
 from utilities.artist_cut_match_uv import get_artist_cut_match_uv
@@ -127,17 +126,15 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
         resolution = get_resolution(v_i, f, uv_i, ftc)
 
         if not mesh_modified:
-            _, _, artist_angle_match = get_artist_angle_match(angle_errors_o, angle_errors, mesh_areas)
-            _, _, artist_area_match = get_artist_area_match(mesh_areas, uv_areas_o, uv_areas)
+            artist_correlation = artist_correlation(angle_errors_o, angle_errors, mesh_areas)
         else:
-            artist_angle_match = np.nan
-            artist_area_match = np.nan
+            artist_correlation = np.nan
 
         row = [fname, len(f_wnan), len(v), max_area_distortion, total_area_distortion, \
               min_singular_value, max_singular_value, percent_flipped, \
               #overlap_area, 
               max_angle_distortion, total_angle_distortion, \
-              resolution, artist_area_match, artist_angle_match, \
+              resolution, artist_correlation, \
               mesh_modified, \
               symmetric_dirichlet_energy]
 
@@ -210,7 +207,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
                   "Min Singular Value", "Max Singular Value", "Proportion Flipped Triangles", \
                   #"Bijectivity Violation Area", 
                   "Max Angle Distortion", "Average Angle Discrepancy", \
-                  "Resolution", "Artist Area Match", "Artist Angle Match", "Remeshed", \
+                  "Resolution", "Artist Correlation", "Remeshed", \
                   "Symmetric Dirichlet Energy"]
     
     if not use_cut_dataset:
@@ -255,7 +252,7 @@ def get_uv_characteristics(dataset_folder, measure_folder, use_cut_dataset, outp
             if tri_df_rows is not None:
                 tri_df_sets[fname] = tri_df_rows
                 
-    interesting_maxes = ["Artist Area Match", "Artist Angle Match", "Average Area Discrepancy", "Average Angle Discrepancy", \
+    interesting_maxes = ["Artist Correlation", "Average Area Discrepancy", "Average Angle Discrepancy", \
                         "Proportion Flipped Triangles"]
     
     additional_interesting_meshes = [
