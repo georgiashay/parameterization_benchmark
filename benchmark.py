@@ -19,7 +19,7 @@ from utilities.angle_distortion import get_angle_distortion
 from utilities.overlap_area import get_overlap_area
 from utilities.symmetric_dirichlet_energy import symmetric_dirichlet_energy
 from utilities.resolution import get_resolution
-from utilities.artist_correlation import get_artist_artist_correlation
+from utilities.artist_correlation import get_artist_correlation
 from utilities.mesh_cut_length import get_mesh_cut_length
 from utilities.artist_cut_match_mesh import get_artist_cut_match_mesh
 from utilities.artist_cut_match_uv import get_artist_cut_match_uv
