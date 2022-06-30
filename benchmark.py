@@ -17,7 +17,7 @@ from utilities.singular_values import get_singular_values
 from utilities.flipped import get_flipped
 from utilities.angle_distortion import get_angle_distortion
 from utilities.overlap_area import get_overlap_area
-from utilities.symmetric_dirichlet_energy import symmetric_dirichlet_energy
+from utilities.symmetric_dirichlet_energy import get_symmetric_dirichlet_energy
 from utilities.resolution import get_resolution
 from utilities.artist_correlation import get_artist_correlation
 from utilities.mesh_cut_length import get_mesh_cut_length
@@ -110,7 +110,7 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
         singular_values, min_singular_value, max_singular_value = get_singular_values(J)
         singular_values_o, _, _ = get_singular_values(J_o)
 
-        symmetric_dirichlet_energy = symmetric_dirichlet_energy(singular_values, 0.5*igl.doublearea(v,f))
+        symmetric_dirichlet_energy = get_symmetric_dirichlet_energy(singular_values, mesh_areas)
         
         nan_faces_insert_locs = [face - i for i, face in enumerate(sorted(nan_faces))]
         singular_values_wnan = np.insert(singular_values, nan_faces_insert_locs, values=np.nan, axis=0)
@@ -118,21 +118,18 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
         percent_flipped = get_flipped(J)
         percent_flipped = min(percent_flipped, 1 - percent_flipped)
 
-#             overlap_area = get_overlap_area(ftc, uv, singular_values)
-
         angle_distortions, angle_errors, max_angle_distortion, total_angle_distortion = get_angle_distortion(singular_values, mesh_areas, v, f, uv, ftc)
         _, angle_errors_o, _, _ = get_angle_distortion(singular_values_o, mesh_areas_o, v_o, f_o, uv_o, ftc_o)
 
         resolution = get_resolution(v_i, f, uv_i, ftc)
 
         if not mesh_modified:
-            artist_correlation = artist_correlation(angle_errors_o, angle_errors, mesh_areas)
+            artist_correlation = get_artist_correlation(singular_values_o, singular_values, mesh_areas)
         else:
             artist_correlation = np.nan
 
         row = [fname, len(f_wnan), len(v), max_area_distortion, total_area_distortion, \
               min_singular_value, max_singular_value, percent_flipped, \
-              #overlap_area, 
               max_angle_distortion, total_angle_distortion, \
               resolution, artist_correlation, \
               mesh_modified, \
@@ -156,6 +153,8 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
         return df_row, new_tri_df
 
     except Exception as e:
+        if str(e) != "No UV area" and str(e) != "No faces in mesh":
+            raise e
         print("Exception for", fname)
         print(e)
         row = [fname, len(f_o_wnan), len(v_o)] + [np.nan] * (len(df_columns) - 3)

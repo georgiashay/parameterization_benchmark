@@ -27,6 +27,16 @@ def preprocess(fpath):
         v_i, uv_i, n, f, ftc, fn = igl.read_obj(tmp.name)
         tmp.close()
 
+    if len(f) == 0:
+        raise ValueError("No faces in mesh")
+
+    assert v_i.shape[0] > 0
+    assert v_i.shape[1] == 3
+    assert uv_i.shape[1] == 2
+    assert f.shape[0] > 0
+    assert len(f)==3 or f.shape[1] == 3
+    assert f.shape == ftc.shape
+
     f = f.reshape((-1, 3))
     ftc = ftc.reshape((-1, 3))
         
