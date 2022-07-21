@@ -153,6 +153,8 @@ def get_uv_rows(fname, ofpath, fpath, df_columns, use_cut_dataset):
         return df_row, new_tri_df
 
     except Exception as e:
+        if str(e) != "No UV area" and str(e) != "No faces in mesh":
+            raise e
         print("Exception for", fname)
         print(e)
         row = [fname, len(f_o_wnan), len(v_o)] + [np.nan] * (len(df_columns) - 3)
