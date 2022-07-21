@@ -94,7 +94,7 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
                 ("Avg Percentage Flipped Triangles", np.mean(percent_flipped)),
                 ("Avg Non-Inf Max Angle Distortion", avg_non_inf_max_angle_distortion),
                 ("Avg Angle Discrepancy", np.mean(average_angle_discrepancy)),
-                ("Avg Artist Correlation (smaller = more correlated)", np.mean(artist_correlation)),
+                ("Avg Artist Correlation (small = more corr.)", np.mean(artist_correlation)),
                 ("Proportion of Parameterization Failures", proportion_failures)
             ]
             
@@ -146,7 +146,7 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
     if produce_scatter:
         pdf.add_page()
         if is_comparison:
-            pdf.image(os.path.join(plot_folder, "symmetric_dirichlet_energy_comp.png"), \
+            pdf.image(os.path.join(plot_folder, "symmetric_dirichlet_energy_scatter_comp.png"), \
                       x=28.35, y=30, w=555.3, h = 222.12, type = '', link = '')
             pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter_comp.png"), \
                       x=28.35, y=255, w=555.3, h = 222.12, type = '', link = '')
@@ -159,7 +159,7 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
             pdf.image(os.path.join(plot_folder, "average_area_discrepancy_scatter_comp.png"), \
                       x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
         else:
-            pdf.image(os.path.join(plot_folder, "symmetric_dirichlet_energy.png"), \
+            pdf.image(os.path.join(plot_folder, "symmetric_dirichlet_energy_scatter.png"), \
                       x=28.35, y=30, w=555.3, h = 222.12, type = '', link = '')
             pdf.image(os.path.join(plot_folder, "max_angle_distortion_scatter.png"), \
                       x=28.35, y=255, w=555.3, h = 222.12, type = '', link = '')
@@ -168,14 +168,18 @@ def generate_report(data1, data2, folder1, folder2, name1, name2, output_folder,
             
             pdf.add_page()
             pdf.image(os.path.join(plot_folder, "max_area_distortion.png"), \
-                      x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+                      x=28.35, y=30, w=555.3, h = 222.12, type = '', link = '')
             pdf.image(os.path.join(plot_folder, "average_area_discrepancy.png"), \
-                      x=28.35, y=275, w=555.3, h = 222.12, type = '', link = '')
+                      x=28.35, y=255, w=555.3, h = 222.12, type = '', link = '')
 
     if not remeshed:
-        pdf.add_page()
-        pdf.image(os.path.join(plot_folder, "artist_correlation.png"), \
-                  x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
+        if produce_scatter:
+            pdf.image(os.path.join(plot_folder, "artist_correlation.png"), \
+                      x=28.35, y=495, w=555.3, h = 222.12, type = '', link = '')
+        else:
+            pdf.add_page()
+            pdf.image(os.path.join(plot_folder, "artist_correlation.png"), \
+                      x=28.35, y=50, w=555.3, h = 222.12, type = '', link = '')
         
     if not data1.cut:
         pdf.add_page()
@@ -224,7 +228,7 @@ def selected_plots(folder1,
     #Read in the CSV files to create a namespace
     data1 = read_csv(os.path.join(folder1, "distortion_characteristics.csv"))
     data2 = None if folder2==None else read_csv(os.path.join(folder2, "distortion_characteristics.csv"))
-    
+
     remeshed = any(data1.remeshed) if data2==None else (any(data1.remeshed) or any(data2.remeshed))
 
     if data2 != None:
@@ -274,7 +278,8 @@ def selected_plots(folder1,
     def make_graphs_for_prop(prop,
         title,
         produce_scatter=True,
-        plot_data2=True):
+        plot_data2=True,
+        logx=True):
 
         plot_2 = plot_data2 if data2 is not None else False
 
@@ -285,7 +290,7 @@ def selected_plots(folder1,
                 name2,
                 title=title,
                 comment='(failed parametrizations are ∞)',
-                logx=True,
+                logx=logx,
                 zero_bin=False,
                 inf_bin=True)
         else:
@@ -293,7 +298,7 @@ def selected_plots(folder1,
                 name1,
                 title=title,
                 comment='(failed parametrizations are ∞)',
-                logx=True,
+                logx=logx,
                 zero_bin=False,
                 inf_bin=True)
         hist_path = os.path.join(out_dir, f'{prop}.')
@@ -309,7 +314,9 @@ def selected_plots(folder1,
                     name2,
                     huedata=data1.nfaces,
                     huename="#faces",
-                    title=title)
+                    title=title,
+                    logx=logx,
+                    logy=logx)
                 scatter_comp_path = os.path.join(out_dir, f'{prop}_scatter_comp.')
                 plt.savefig(scatter_comp_path + 'pdf')
                 plt.savefig(scatter_comp_path + 'png', dpi=300)
@@ -344,7 +351,8 @@ def selected_plots(folder1,
         make_graphs_for_prop('artist_correlation',
             'How much does per-triangle distortion correlate to the artist? (smaller is more correlated)',
             produce_scatter=produce_scatter,
-            plot_data2=not comp_artist)
+            plot_data2=not comp_artist,
+            logx=False)
         
     if not data1.cut:
         make_graphs_for_prop('mesh_cut_length',
@@ -741,8 +749,7 @@ def scatter_comparison(data1,
                     if x>m:
                         m = x
         return m
-    def non_none_f
-    data):
+    def non_none_min(data):
         m = math.inf
         for x in data:
             if x != None:

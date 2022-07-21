@@ -5,4 +5,9 @@ PyMesh
 __pycache__
 **/__pycache__
 .DS_Store
+benchmark_*
 report_*
+old_*
+generate_benchmarks_and_reports.sh
+generate_benchmarks_and_reports.log
+# These are too large for github

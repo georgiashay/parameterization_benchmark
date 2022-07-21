@@ -12,6 +12,7 @@ def get_artist_correlation(singular_values_artist, singular_values_measure, mesh
 
     #Area weight
     w = np.tile(mesh_areas.T, (1,2))
+    w /= np.sum(w)
 
     #Compute weighted correlation
     def cov(X, Y, w):
