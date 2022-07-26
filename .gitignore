@@ -8,9 +8,5 @@ __pycache__
 benchmark_*
 report_*
 old_*
-<<<<<<< HEAD
 generate_benchmarks_and_reports.sh
 generate_benchmarks_and_reports.log
-# These are too large for github
-=======
->>>>>>> f8d8de7ebe528049ff9ce1ebe1e83c35080ee8fd

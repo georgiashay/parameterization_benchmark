@@ -312,8 +312,6 @@ def selected_plots(folder1,
                     name1,
                     getattr(data2, prop),
                     name2,
-                    huedata=data1.nfaces,
-                    huename="#faces",
                     title=title,
                     logx=logx,
                     logy=logx)
@@ -383,6 +381,7 @@ def interesting_meshes(folder1,
         meshes2.sort(key = lambda m: m.filename)
         new_meshes1 = []
         new_meshes2 = []
+        excess_meshes1 = []
         excess_meshes2 = []
         i = 0
         j = 0
@@ -396,6 +395,7 @@ def interesting_meshes(folder1,
                 i += 1
                 j += 1
             elif meshes1[i].filename < meshes2[j].filename:
+                excess_meshes1.append(meshes1[j])
                 i += 1
             else:
                 excess_meshes2.append(meshes2[j])
@@ -445,7 +445,7 @@ def interesting_meshes(folder1,
                 plt.savefig(scatter_comp_path + 'png', dpi=300)
                 plt.close()
             if comp_artist:
-                for mesh in excess_meshes2:
+                for mesh in excess_meshes1:
                     if mesh.reason == "Handpicked":
                         plot_title = mesh.filename + " - " + title
                     else:
@@ -803,7 +803,7 @@ def scatter_comparison(data1,
             to_plot2,
             s=3.,
             cmap=palette,
-            alpha=0.5)
+            alpha=0.25)
     else:
         max_hue = max(huedata)
         min_hue = min(huedata)

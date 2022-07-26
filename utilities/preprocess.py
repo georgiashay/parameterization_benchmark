@@ -1,6 +1,7 @@
 import numpy as np
 import igl
 import tempfile
+import os
 
 def preprocess(fpath):
     """
@@ -22,21 +23,17 @@ def preprocess(fpath):
                             new_f += new_face            
                 else:
                     new_f += line
-        tmp = tempfile.NamedTemporaryFile(mode="w+")
+        tmp = tempfile.NamedTemporaryFile(mode="w+",delete=False)
         tmp.write(new_f)
-        v_i, uv_i, n, f, ftc, fn = igl.read_obj(tmp.name)
+        tmpname = tmp.name
         tmp.close()
-        
-    uv_i = uv_i[:,0:2]
-    assert v_i.shape[0] > 0
-    assert v_i.shape[1] == 3
-    assert f.shape[0] > 0
-    assert len(f)==3 or f.shape[1] == 3
-    assert f.shape == ftc.shape
+        v_i, uv_i, n, f, ftc, fn = igl.read_obj(tmpname)
+        os.remove(tmpname)
 
     if len(f) == 0:
         raise ValueError("No faces in mesh")
-
+ 
+    uv_i = uv_i[:,0:2]
     assert v_i.shape[0] > 0
     assert v_i.shape[1] == 3
     assert uv_i.shape[1] == 2
